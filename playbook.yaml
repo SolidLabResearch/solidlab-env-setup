@@ -12,7 +12,7 @@
     
     - name: Install utils 
       ansible.builtin.apt:
-        pkg: [ 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'openssl', 'wget', 'gnupg', 'tmux', 'vim', 'build-essential', 'ncdu', 'lsb-release', 'jq']
+        pkg: [ 'git', 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'openssl', 'wget', 'gnupg', 'tmux', 'vim', 'build-essential', 'ncdu', 'lsb-release', 'jq']
         update_cache: yes
     
     - name: Prevent systemd from filling /var/log/syslog
@@ -53,3 +53,32 @@
         key: github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
         path: /etc/ssh/ssh_known_hosts
 
+    - name: Set timezone to Europe/Brussels
+      community.general.timezone:
+        name: Europe/Brussels
+
+    - name: Install python
+      ansible.builtin.apt:
+        pkg:
+          - python3
+          - pip
+          - python3-venv
+        update_cache: yes
+
+    - name: Create /usr/local/venv/
+      ansible.builtin.file:
+        path: /usr/local/venv/
+        state: directory
+        mode: u=rwx,g=rx,o=rx
+
+    - name: clone solidlab-perfstat
+      ansible.builtin.git:
+        repo: https://github.com/SolidLabResearch/solidlab-perfstat.git
+        dest: /usr/local/src/solidlab-perfstat
+
+    - name: Setup venv with solidlab-perfstat
+      ansible.builtin.pip:
+        name:
+          - file:///usr/local/src/solidlab-perfstat/
+        virtualenv_command: '/usr/bin/python3 -m venv'
+        virtualenv: /usr/local/venv/solidlab-perfstat/
