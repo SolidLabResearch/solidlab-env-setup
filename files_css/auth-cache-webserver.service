@@ -1,0 +1,17 @@
+[Unit]
+Description=Auth Cache Webserver at 8888
+# Indicate that we use the network.
+#    When starting up, this does not guarantee "the IP is ready", only that "network management stack is up". (Which is enough to start listening on a socket)
+#    When shutting down, this does guarantee that this service gets stopped before network is taken down.
+# (Avoid using network-online.target if not needed. It delays startup. If you use it, use it in both After= and Wants=)
+After=network.target
+
+[Service]
+# safe default (this gets overwritten by setup_css.sh)
+WorkingDirectory=/usr/local/share/
+ExecStart=/usr/bin/python3 -m http.server 8888
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

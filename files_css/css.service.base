@@ -1,0 +1,21 @@
+[Unit]
+Description=Community Solid Server
+# Indicate that we use the network.
+#    When starting up, this does not guarantee "the IP is ready", only that "network management stack is up". (Which is enough to start listening on a socket)
+#    When shutting down, this does guarantee that this service gets stopped before network is taken down.
+# (Avoid using network-online.target if not needed. It delays startup. If you use it, use it in both After= and Wants=)
+After=network.target
+
+[Service]
+WorkingDirectory=<<CSS_ROOT_PATH>>
+EnvironmentFile=<<BASE_DIR>>/setup_css.env
+ExecStart=<<CSS_EXE>> -c <<CSS_CONFIG_FILE>> -b https://<<CSS_DNS_NAME>>/ --rootFilePath <<CSS_ROOT_PATH>> --workers ${WORKERS} -l warn --port 3000
+Restart=on-failure
+RestartSec=2
+# Max number of open files (ulimit -n)
+#LimitNOFILE=1024  # default
+LimitNOFILE=102400
+#LimitNOFILE=infinity
+
+[Install]
+WantedBy=multi-user.target

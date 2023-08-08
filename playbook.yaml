@@ -82,3 +82,121 @@
           - file:///usr/local/src/solidlab-perfstat/
         virtualenv_command: '/usr/bin/python3 -m venv'
         virtualenv: /usr/local/venv/solidlab-perfstat/
+
+    # TODO setup perfstart service and start it
+    # exe in /usr/local/venv/solidlab-perfstat/bin/solidlab-perfstat
+    # create /etc/perfstat.env ?
+
+    - name: "Add nodejs apt key"
+      ansible.builtin.apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        state: present
+
+    - name: "Add nodejs 16.x ppa for apt repo"
+      ansible.builtin.apt_repository:
+        repo: deb https://deb.nodesource.com/node_16.x {{ ansible_distribution_release }} main
+        update_cache: yes
+
+    - name: "Install nodejs 16"
+      ansible.builtin.apt:
+        update_cache: yes
+        name:
+           - nodejs
+           - npm
+        state: present
+
+    - name: Install "typescript" node.js package.
+      community.general.npm:
+        name: typescript
+        global: true
+        path: /usr/local/
+
+    - name: "Install relaxed-json"
+      # rjson is the cli tool of relaxed-json. See https://github.com/phadej/relaxed-json
+      # see also https://github.com/jqlang/jq/wiki/FAQ#processing-not-quite-valid-json
+      community.general.npm:
+        global: true
+        name: relaxed-json
+        path: /usr/local/
+
+    - name: "Install snapd"
+      ansible.builtin.apt:
+        name: snapd
+
+    - name: Install snap core
+      community.general.snap:
+        name: core
+
+    - name: Install certbot
+      community.general.snap:
+        name: certbot
+        classic: true
+
+    - name: Link certbot exe
+      ansible.builtin.file:
+        src: /snap/bin/certbot
+        dest: /usr/local/bin/certbot
+        owner: root
+        group: root
+        state: link
+
+    - name: Install Exe {{ item }}
+      ansible.builtin.copy:
+        src: "files_css/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}"
+        owner: root
+        group: root
+        mode: u=rwx,g=rx,o=rx
+      loop:
+         - provide_certs.sh
+         - setup_css.sh
+
+    # TODO check ${base_dir} in setup_css.sh
+
+    - name: Install Systemd Service {{ item }}
+      ansible.builtin.copy:
+        src: "files_css/{{ item }}.service"
+        dest: "/etc/systemd/system/{{ item }}.service"
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+      loop:
+         - perfstat
+         - css
+         - auth-cache-webserver
+
+    - name: Install Base Systemd Service for css
+      ansible.builtin.copy:
+        src: "files_css/css.service.base"
+        dest: "/etc/systemd/system/css.service.base"
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+
+    - name: Force systemd to reread configs
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    # install_css_populate.sh
+    # TODO
+
+    # install_redis.sh
+
+    - name: "Add redis apt key"
+      ansible.builtin.apt_key:
+        url: https://packages.redis.io/gpg
+        state: present
+
+    - name: "Add redis ppa"
+      ansible.builtin.apt_repository:
+        repo: deb https://packages.redis.io/deb {{ ansible_distribution_release }} main
+        update_cache: yes
+
+    - name: "Install redis"
+      ansible.builtin.apt:
+        update_cache: yes
+        name: redis
+        state: present
+
+    # install_flood.sh
+    # TODO
