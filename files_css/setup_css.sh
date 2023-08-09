@@ -103,6 +103,22 @@ then
   exit 1
 fi
 
+if [ -z "${GENERATE_USERS}" ]
+then
+  GENERATE_USERS='false'
+fi
+
+if [ -z "${GENERATE_CONTENT}" ]
+then
+  GENERATE_CONTENT='false'
+fi
+
+if [ "${GENERATE_CONTENT,,}" == "true" ] && [ "${GENERATE_USERS,,}" != "true" ]
+then
+  echo "Env var error: Cannot generate content without generating users: GENERATE_USERS=${GENERATE_USERS} GENERATE_CONTENT=${GENERATE_CONTENT}"
+  exit 1
+fi
+
 if [ -z "$RESOURCE_LOCKER" ]
 then
   echo 'Missing env var RESOURCE_LOCKER. Defaulting to RESOURCE_LOCKER="file"'
@@ -192,38 +208,50 @@ fi
 
 echo "    NICK=$NICK"
 
-# Make a unique name ("CONTENT_ID") based on requested server data content
-# Variables:
-#    ${CONTENT_USER_COUNT}
-#    ${CONTENT_FIXED_SIZE_FILECOUNT}
-#    ${CONTENT_FILES_FOR_GET}
-#    ${CONTENT_FILES_RDF}
-#    ${CONTENT_FILES_RDF_SIZE} / ${CONTENT_FILES_RDF_SIZE_NICK}
-#    ${AUTHORIZATION}  # content dir differs for authentication methods
-#    ${GENERATED_FILES_NEST_DEPTH}
-CONTENT_ID="cnt-${CONTENT_USER_COUNT}u-${CONTENT_FIXED_SIZE_FILECOUNT}fs-${AUTHORIZATION}"
-if [ "${CONTENT_FILES_FOR_GET,,}" == 'true' ]
+if [ "${GENERATE_CONTENT,,}" == "true" ]
 then
-  CONTENT_ID="${CONTENT_ID}-get"
-fi
-if [ "${GENERATED_FILES_NEST_DEPTH}" != '0' ]
-then
-  CONTENT_ID="${CONTENT_ID}-d${GENERATED_FILES_NEST_DEPTH}"
-fi
-if [ "${GENERATED_FILES_ADD_AC_PER_RESOURCE}" == 'false' ]
-then
-  CONTENT_ID="${CONTENT_ID}-noresac"
-fi
-if [ "${GENERATED_FILES_ADD_AC_PER_DIR}" == 'false' ]
-then
-  CONTENT_ID="${CONTENT_ID}-nodirac"
-fi
-if [ "${CONTENT_FILES_RDF,,}" == 'true' ]
-then
-  CONTENT_ID="${CONTENT_ID}-rdf${CONTENT_FILES_RDF_SIZE_NICK}"
-fi
-echo "    CONTENT_ID=${CONTENT_ID}"
+  # Make a unique name ("CONTENT_ID") based on requested server data content
+  # Variables:
+  #    ${CONTENT_USER_COUNT}
+  #    ${CONTENT_FIXED_SIZE_FILECOUNT}
+  #    ${CONTENT_FILES_FOR_GET}
+  #    ${CONTENT_FILES_RDF}
+  #    ${CONTENT_FILES_RDF_SIZE} / ${CONTENT_FILES_RDF_SIZE_NICK}
+  #    ${AUTHORIZATION}  # content dir differs for authentication methods
+  #    ${GENERATED_FILES_NEST_DEPTH}
+  CONTENT_ID="cnt-${CONTENT_USER_COUNT}u-${CONTENT_FIXED_SIZE_FILECOUNT}fs-${AUTHORIZATION}"
+  if [ "${CONTENT_FILES_FOR_GET,,}" == 'true' ]
+  then
+    CONTENT_ID="${CONTENT_ID}-get"
+  fi
+  if [ "${GENERATED_FILES_NEST_DEPTH}" != '0' ]
+  then
+    CONTENT_ID="${CONTENT_ID}-d${GENERATED_FILES_NEST_DEPTH}"
+  fi
+  if [ "${GENERATED_FILES_ADD_AC_PER_RESOURCE}" == 'false' ]
+  then
+    CONTENT_ID="${CONTENT_ID}-noresac"
+  fi
+  if [ "${GENERATED_FILES_ADD_AC_PER_DIR}" == 'false' ]
+  then
+    CONTENT_ID="${CONTENT_ID}-nodirac"
+  fi
+  if [ "${CONTENT_FILES_RDF,,}" == 'true' ]
+  then
+    CONTENT_ID="${CONTENT_ID}-rdf${CONTENT_FILES_RDF_SIZE_NICK}"
+  fi
+  echo "    CONTENT_ID=${CONTENT_ID}"
+else
+  if [ "${GENERATE_USERS,,}" == "true" ]
+  then
+    CONTENT_ID="cnt-${CONTENT_USER_COUNT}u-empty"
+  else
+    CONTENT_ID="cnt-empty"
+  fi
 
+  # Random content ID: new empty content dir every time
+#  CONTENT_ID="empty-$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 10)"
+fi
 ##################################################################################################################
 ##################################################################################################################
 
@@ -280,29 +308,32 @@ function start_css() {
     exit 1
   fi
 
-  # Wait until server under test has a valid cert
-  #   (in most cases, that is from the start, but in the case of traefik, it might have to be fetched from letsencrypt)
-  # Or CSS to be ready with SSL
-  _CSS_CERT_READY=false
-  for wait in $(seq 1 120)  # wait max 2 minutes, then just give up
-  do
-    if echo -n | openssl s_client -connect "${CSS_PUBLIC_DNS_NAME}:443" -verify_return_error > /dev/null 2>&1;
-    then
-      echo "      OK: Got a valid certificate from ${CSS_PUBLIC_DNS_NAME}:443"
-      _CSS_CERT_READY=true
-      sleep 0.2
-      break
-    else
-      echo "      Not (yet) OK: Failed to get valid cert on ${CSS_PUBLIC_DNS_NAME}:443"
-    fi
-    sleep 1  #wait until cert is ready
-    echo "   Waiting for a valid certificate ($wait)..."
-  done
-
-  if ! ${_CSS_CERT_READY}
+  if [ "$SERVER_FACTORY" == "https" ]
   then
-    echo 'ERROR: CSS did not start correctly'
-    exit 1
+    # Wait until server under test has a valid cert
+    #   (in most cases, that is from the start, but in the case of traefik, it might have to be fetched from letsencrypt)
+    # Or CSS to be ready with SSL
+    _CSS_CERT_READY=false
+    for wait in $(seq 1 120)  # wait max 2 minutes, then just give up
+    do
+      if echo -n | openssl s_client -connect "${CSS_PUBLIC_DNS_NAME}:443" -verify_return_error > /dev/null 2>&1;
+      then
+        echo "      OK: Got a valid certificate from ${CSS_PUBLIC_DNS_NAME}:443"
+        _CSS_CERT_READY=true
+        sleep 0.2
+        break
+      else
+        echo "      Not (yet) OK: Failed to get valid cert on ${CSS_PUBLIC_DNS_NAME}:443"
+      fi
+      sleep 1  #wait until cert is ready
+      echo "   Waiting for a valid certificate ($wait)..."
+    done
+
+    if ! ${_CSS_CERT_READY}
+    then
+      echo 'ERROR: CSS did not start correctly'
+      exit 1
+    fi
   fi
 
   # test SSL on 3000: openssl s_client -connect localhost:3000 -servername $(cat /etc/css_dns_name) -msg
@@ -498,38 +529,41 @@ function install_css() {
   jq '."@graph"[].config.ttl' < config/identity/handler/provider-factory/identity.json
   echo
 
-  echo 'Hardcoding HTTPS certificate locations:'
-  https_no_cli_config_file="config/http/server-factory/https-no-cli-example.json"
-  if [ -e "${https_no_cli_config_file}" ]
-    then
-      cp "${https_no_cli_config_file}" "${https_no_cli_config_file}.orig"
-      jq '(..|.options_key? // empty) = "'"${HTTPS_KEY_FILE}"'"  | (..|.options_cert? // empty) = "'"${HTTPS_CERT_FILE}"'"' \
-             < "${https_no_cli_config_file}.orig" \
-             > "${https_no_cli_config_file}"
-      grep -H 'options_' "${https_no_cli_config_file}"
-      echo
-
-      # Use https-no-cli-example.json instead of https.json
-      if [ -e "config/http/server-factory/https.json" ]
+  if [ "$SERVER_FACTORY" == "https" ]
+  then
+    echo 'Hardcoding HTTPS certificate locations:'
+    https_no_cli_config_file="config/http/server-factory/https-no-cli-example.json"
+    if [ -e "${https_no_cli_config_file}" ]
       then
-         cp -v "config/http/server-factory/https.json" "config/http/server-factory/https.json.orig"
-      fi
-      cp -v "${https_no_cli_config_file}" "config/http/server-factory/https.json"
-  else
-    for https_config_file in 'config/http/server-factory/https.json' 'config/http/server-factory/https-websockets.json' 'config/http/server-factory/https-no-websockets.json'
-    do
-      if [ -e "${https_config_file}" ]
-      then
-        cp "${https_config_file}" "${https_config_file}.orig"
+        cp "${https_no_cli_config_file}" "${https_no_cli_config_file}.orig"
         jq '(..|.options_key? // empty) = "'"${HTTPS_KEY_FILE}"'"  | (..|.options_cert? // empty) = "'"${HTTPS_CERT_FILE}"'"' \
-               < "${https_config_file}.orig" \
-               > "${https_config_file}"
-  #      jq '."@graph"[].options_key = "'"${HTTPS_KEY_FILE}"'" | ."@graph"[].options_cert = "'"${HTTPS_CERT_FILE}"'"' \
-  #    jq '."@graph"[].baseServerFactory.options_key = "'"${HTTPS_KEY_FILE}"'" | ."@graph"[].baseServerFactory.options_cert = "'"${HTTPS_CERT_FILE}"'"' \
-        grep -H 'options_' "${https_config_file}"
+               < "${https_no_cli_config_file}.orig" \
+               > "${https_no_cli_config_file}"
+        grep -H 'options_' "${https_no_cli_config_file}"
         echo
-      fi
-    done
+
+        # Use https-no-cli-example.json instead of https.json
+        if [ -e "config/http/server-factory/https.json" ]
+        then
+           cp -v "config/http/server-factory/https.json" "config/http/server-factory/https.json.orig"
+        fi
+        cp -v "${https_no_cli_config_file}" "config/http/server-factory/https.json"
+    else
+      for https_config_file in 'config/http/server-factory/https.json' 'config/http/server-factory/https-websockets.json' 'config/http/server-factory/https-no-websockets.json'
+      do
+        if [ -e "${https_config_file}" ]
+        then
+          cp "${https_config_file}" "${https_config_file}.orig"
+          jq '(..|.options_key? // empty) = "'"${HTTPS_KEY_FILE}"'"  | (..|.options_cert? // empty) = "'"${HTTPS_CERT_FILE}"'"' \
+                 < "${https_config_file}.orig" \
+                 > "${https_config_file}"
+    #      jq '."@graph"[].options_key = "'"${HTTPS_KEY_FILE}"'" | ."@graph"[].options_cert = "'"${HTTPS_CERT_FILE}"'"' \
+    #    jq '."@graph"[].baseServerFactory.options_key = "'"${HTTPS_KEY_FILE}"'" | ."@graph"[].baseServerFactory.options_cert = "'"${HTTPS_CERT_FILE}"'"' \
+          grep -H 'options_' "${https_config_file}"
+          echo
+        fi
+      done
+    fi
   fi
 
   ##### make copies to be backward compatible:
@@ -688,6 +722,12 @@ function generate_css_data() {
     mkdir "${_CSS_DATA_DIR}"
   fi
 
+  if [ "${GENERATE_CONTENT,,}" != "true" ] && [ "${GENERATE_USERS,,}" != "true" ]
+  then
+    # Nothing to do
+    return 0;
+  fi
+
   if "${_START_CSS}"
   then
     update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000
@@ -701,17 +741,17 @@ function generate_css_data() {
   fi
 
   CONTENT_VAR_SIZE_ARG=''
-  if [ "${CONTENT_FILES_FOR_GET,,}" == 'true' ]
+  if [ "${GENERATE_CONTENT,,}" == "true" ] && [ "${CONTENT_FILES_FOR_GET,,}" == 'true' ]
   then
      CONTENT_VAR_SIZE_ARG='--generate-variable-size'
   fi
   CONTENT_FIXED_SIZE_ARG=''
-  if [ "${CONTENT_FIXED_SIZE_FILECOUNT}" -gt 0 ]
+  if [ "${GENERATE_CONTENT,,}" == "true" ] && [ "${CONTENT_FIXED_SIZE_FILECOUNT}" -gt 0 ]
   then
      CONTENT_FIXED_SIZE_ARG="--generate-fixed-size --file-size 10 --file-count $((CONTENT_FIXED_SIZE_FILECOUNT))"
   fi
   CONTENT_RDF_ARG=''
-  if [ "${CONTENT_FILES_RDF,,}" == 'true' ]
+  if [ "${GENERATE_CONTENT,,}" == "true" ] && [ "${CONTENT_FILES_RDF,,}" == 'true' ]
   then
      if [ ! -e "${data_dir}/infobox-properties_lang=nl__head75000_10MB.nt" ]
      then
@@ -990,7 +1030,7 @@ if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
 then
   # Generate clean content dir
   LAST_USER_ID=$(( CONTENT_USER_COUNT - 1 ))
-  if [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}" ] || [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}/user${LAST_USER_ID}" ] || [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}/.internal/accounts" ] || [ -e "${CSS_COMMIT_CLEAN_DATA_DIR}/ERROR" ]
+  if [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}" ] || [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}/user${LAST_USER_ID}" ] || [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}/.internal" ] || [ -e "${CSS_COMMIT_CLEAN_DATA_DIR}/ERROR" ]
   then
     echo "Need to generate data for $NICK-${CONTENT_ID} in ${CSS_COMMIT_CLEAN_DATA_DIR}"
     generate_css_data "${CSS_COMMIT_CLEAN_DATA_DIR}"
@@ -1090,13 +1130,6 @@ else
   echo 'Will not log CSS config'
 fi
 
-#echo '#########################################################'
-#
-## OLD, see provide_certs.sh for current method
-#echo "Making sure SSL certificate and key are up to date"
-#jq -r --arg dns "${CSS_PUBLIC_DNS_NAME}" '.letsencrypt.Certificates[] | select(.domain.main==$dns) | .certificate' < /etc/traefik/acme.json | base64 -d > "${HTTPS_CERT_FILE}"
-#jq -r --arg dns "${CSS_PUBLIC_DNS_NAME}" '.letsencrypt.Certificates[] | select(.domain.main==$dns) | .key' < /etc/traefik/acme.json | base64 -d > "${HTTPS_KEY_FILE}"
-
 echo '#########################################################'
 
 if [ "$SERVER_UNDER_TEST" == "nginx" ]
@@ -1104,7 +1137,7 @@ then
   echo "Starting nginx (+ configuring it)"
 
   # Configure nginx if needed
-  if [ ! -e /etc/letsencrypt/options-ssl-nginx.conf ]
+  if [ "$SERVER_FACTORY" == "https" ] && [ ! -e /etc/letsencrypt/options-ssl-nginx.conf ]
   then
     cp -v /etc/nginx/sites-enabled/default /tmp/backup-nginx-sites-enabled-default
     certbot run --nginx --domain "${CSS_PUBLIC_DNS_NAME}" --agree-tos --register-unsafely-without-email

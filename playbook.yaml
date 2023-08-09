@@ -151,6 +151,15 @@
          - provide_certs.sh
          - setup_css.sh
 
+    - name: Install setup_css.env
+      ansible.builtin.copy:
+        src: "files_css/setup_css.env"
+        dest: "/usr/local/etc/setup_css.env"
+        owner: root
+        group: root
+        # writable by all!
+        mode: u=rw,g=rw,o=rw
+
     # TODO check ${base_dir} in setup_css.sh
 
     - name: Install Systemd Services
@@ -167,7 +176,7 @@
 
     - name: Install Template Systemd Service for css
       ansible.builtin.copy:
-        src: "files_css/css.service.base"
+        src: "files_css/css.service.template"
         dest: "/etc/systemd/system/css.service.template"
         owner: root
         group: root
@@ -226,5 +235,14 @@
         name: redis
         state: present
 
-    # install_flood.sh
-    # TODO
+    # install_flood.sh  (needed for auth cache, which is then shared by auth-cache-webservice)
+
+    - name: clone css-flood
+      ansible.builtin.git:
+        repo: https://github.com/SolidLabResearch/css-flood.git
+        dest: /usr/local/src/css-flood
+
+    - name: Install css-flood
+      community.general.npm:
+        global: true
+        path: /usr/local/src/css-flood
