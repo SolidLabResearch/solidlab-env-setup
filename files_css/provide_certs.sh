@@ -1,9 +1,18 @@
 #!/bin/bash -e
 
+exe_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd "${exe_dir}"
+
+etc_dir="/etc"
+if [ "$(dirname "${exe_dir}")" == '/usr/local' ]
+then
+  etc_dir="/usr/local/etc"
+fi
+
 CSS_PUBLIC_DNS_NAME="$(cat /etc/css_dns_name)"
 
-HTTPS_CERT_FILE="/etc/css/server_cert.pem"
-HTTPS_KEY_FILE="/etc/css/server_key.pem"
+HTTPS_CERT_FILE="${etc_dir}/css/server_cert.pem"
+HTTPS_KEY_FILE="${etc_dir}/css/server_key.pem"
 
 if [ ! -e "/etc/letsencrypt/live/${CSS_PUBLIC_DNS_NAME}/fullchain.pem" ]
 then
@@ -28,7 +37,7 @@ fi
 cp -v "/etc/letsencrypt/live/${CSS_PUBLIC_DNS_NAME}/fullchain.pem" "${HTTPS_CERT_FILE}"
 cp -v "/etc/letsencrypt/live/${CSS_PUBLIC_DNS_NAME}/privkey.pem" "${HTTPS_KEY_FILE}"
 
-CERT_NOT_AFTER=$(openssl x509 -noout -enddate -in /etc/css/server_cert.pem | sed -e 's/^.*=//' | xargs -I '@' date -u --date='@' '+%FT%TZ')
+CERT_NOT_AFTER=$(openssl x509 -noout -enddate -in "${HTTPS_CERT_FILE}" | sed -e 's/^.*=//' | xargs -I '@' date -u --date='@' '+%FT%TZ')
 CERT_NOT_AFTER_EPOCH=$(date --date="${CERT_NOT_AFTER}" +%s)
 #NOW_EPOCH=$(date +%s)
 #YESTERDAY_EPOCH=$(echo "$NOW_EPOCH - 24*60*60" | bc)
@@ -56,14 +65,14 @@ cp -v "/etc/letsencrypt/live/${CSS_PUBLIC_DNS_NAME}/privkey.pem" "${HTTPS_KEY_FI
 ########################################################################################################################
 
 # Now just check if all is OK
-CERT_NOT_AFTER=$(openssl x509 -noout -enddate -in /etc/css/server_cert.pem | sed -e 's/^.*=//' | xargs -I '@' date -u --date='@' '+%FT%TZ')
+CERT_NOT_AFTER=$(openssl x509 -noout -enddate -in "${HTTPS_CERT_FILE}" | sed -e 's/^.*=//' | xargs -I '@' date -u --date='@' '+%FT%TZ')
 CERT_NOT_AFTER_EPOCH=$(date --date="${CERT_NOT_AFTER}" +%s)
 YESTERDAY_EPOCH=$(date -d "yesterday" +%s)
 
 if [ "${CERT_NOT_AFTER_EPOCH}" -lt "${YESTERDAY_EPOCH}" ]
 then
   echo 'ERROR: After certbot renew, certificates are not valid long enough!'
-  openssl x509 -noout -enddate -in /etc/css/server_cert.pem
+  openssl x509 -noout -enddate -in "${HTTPS_CERT_FILE}"
   exit 1
 fi
 

@@ -8,7 +8,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=<<CSS_ROOT_PATH>>
-EnvironmentFile=<<BASE_DIR>>/setup_css.env
+EnvironmentFile=<<ENV_FILE>>
 ExecStart=<<CSS_EXE>> -c <<CSS_CONFIG_FILE>> -b https://<<CSS_DNS_NAME>>/ --rootFilePath <<CSS_ROOT_PATH>> --workers ${WORKERS} -l warn --port 3000
 Restart=on-failure
 RestartSec=2

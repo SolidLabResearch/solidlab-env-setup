@@ -13,11 +13,45 @@
 
 # First: handle env vars
 
-base_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-cd "${base_dir}"
+exe_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd "${exe_dir}"
+# exe_dir should be /usr/local/bin/
+
+# install_prefix is /, /usr/ or /usr/local/
+# will be auto-detected by looking at exe_dir
 
 # stderr to stdout for all of script
 exec 2>&1
+
+install_prefix="/usr/local/"
+etc_dir="/usr/local/etc/"
+
+if [ "$(dirname "${exe_dir}")" == '/usr/local' ]
+then
+  install_prefix="/usr/local/"
+  etc_dir="/usr/local/etc"
+elif [ "$(dirname "${exe_dir}")" ==  '/usr' ]
+then
+  install_prefix="/usr/"
+  etc_dir="/etc"
+elif [ "$(dirname "${exe_dir}")" ==  '/' ]
+then
+  install_prefix="/"
+  etc_dir="/etc"
+else
+  echo "$(basename "${BASH_SOURCE[0]}") is installed in an unsupported dir: ${exe_dir}"
+  exit 1
+fi
+
+env_file="${etc_dir}/setup_css.env"
+data_dir="${install_prefix}share/"
+
+if [ ! -e "${env_file}" ]
+then
+  echo "env file not found: '${env_file}'"
+  exit 1
+fi
+
 
 CLIENT_PUBLIC_DNS_NAME="$(cat /etc/client_dns_name)"
 CSS_PUBLIC_DNS_NAME="$(cat /etc/css_dns_name)"
@@ -25,7 +59,7 @@ CSS_PUBLIC_DNS_NAME="$(cat /etc/css_dns_name)"
 # Load environment variables from setup_css.env
 #   (allexport adds "export" to all of them)
 set -o allexport
-source "${base_dir}/setup_css.env"
+source "${env_file}"
 set +o allexport
 
 if [ -z "$WORKERS" ]
@@ -49,7 +83,7 @@ systemctl stop css traefik nginx auth-cache-webserver
 # If the above fails, there's typically an error in a systemd unit .service file
 
 # Then make sure we have the SSL cert we might need
-"${base_dir}/provide_certs.sh"
+"${exe_dir}/provide_certs.sh"
 
 if [ -z "$GIT_REPO_URL" ]
 then
@@ -145,8 +179,8 @@ CONFIG_DIR="/etc/css/$NICK"
 CONFIG_FILE="${CONFIG_DIR}/perftest.json"
 SERVER_NEUTRAL_CONFIG_FILE="/usr/local/src/css-$NICK/config/perftest-$AUTHORIZATION.json"
 
-HTTPS_CERT_FILE="/etc/css/server_cert.pem"
-HTTPS_KEY_FILE="/etc/css/server_key.pem"
+HTTPS_CERT_FILE="${etc_dir}/css/server_cert.pem"
+HTTPS_KEY_FILE="${etc_dir}/css/server_key.pem"
 
 # Exe can be in 2 places, and both are fine
 if [ -e "${INSTALL_PREFIX}/bin/community-solid-server" ]
@@ -304,7 +338,7 @@ function update_css_service_file() {
   #
   # Input env vars:
   #   $CSS_PUBLIC_DNS_NAME
-  #   $base_dir
+  #   $env_file
   #   $EXE
   #
   # parameters:
@@ -315,12 +349,14 @@ function update_css_service_file() {
   echo "Updating CSS systemd service to use config '$1' and root '$2'"
 
   cp -v "/etc/systemd/system/css.service.base" /etc/systemd/system/
-  sed -i -e "s/<<CSS_DNS_NAME>>/${CSS_PUBLIC_DNS_NAME}/g" \
-         -e "s#<<BASE_DIR>>#${base_dir}#g" \
-         -e "s#<<CSS_EXE>>#${EXE}#g" \
-         -e "s#<<CSS_ROOT_PATH>>#${2}#g" \
-         -e "s#<<CSS_CONFIG_FILE>>#${1}#g" \
-         -e "s/--port [0-9][0-9]*/--port ${3}/" /etc/systemd/system/css.service
+  sed -e "s/<<CSS_DNS_NAME>>/${CSS_PUBLIC_DNS_NAME}/g" \
+      -e "s#<<ENV_FILE>>#${env_file}#g" \
+      -e "s#<<CSS_EXE>>#${EXE}#g" \
+      -e "s#<<CSS_ROOT_PATH>>#${2}#g" \
+      -e "s#<<CSS_CONFIG_FILE>>#${1}#g" \
+      -e "s/--port [0-9][0-9]*/--port ${3}/" \
+        < "/etc/systemd/system/css.service.template" \
+        > "/etc/systemd/system/css.service"
 
   systemctl daemon-reload
   return 0
@@ -632,7 +668,7 @@ function generate_css_data() {
   #
   # Input env vars:
   #   $CSS_PUBLIC_DNS_NAME
-  #   $base_dir
+  #   $env_file
   #   $SERVER_NEUTRAL_CONFIG_FILE
   #   #for content generation config:
   #   ${CONTENT_USER_COUNT}
@@ -641,7 +677,7 @@ function generate_css_data() {
   #   ${CONTENT_FILES_RDF}
   # Input env vars used by update_css_service_file:
   #   $CSS_PUBLIC_DNS_NAME
-  #   $base_dir
+  #   $env_file
   #   $EXE
   #   $USED_CSS_PORT
 
@@ -677,30 +713,30 @@ function generate_css_data() {
   CONTENT_RDF_ARG=''
   if [ "${CONTENT_FILES_RDF,,}" == 'true' ]
   then
-     if [ ! -e "${base_dir}/infobox-properties_lang=nl__head75000_10MB.nt" ]
+     if [ ! -e "${data_dir}/infobox-properties_lang=nl__head75000_10MB.nt" ]
      then
-        echo 'Missing required RDF base file "'"${base_dir}/infobox-properties_lang=nl__head75000_10MB.nt"'"'
+        echo 'Missing required RDF base file "'"${data_dir}/infobox-properties_lang=nl__head75000_10MB.nt"'"'
         exit 1
      fi
-     if [ ! -e "${base_dir}/infobox-properties_lang=nl__head7500_1MB.nt" ]
+     if [ ! -e "${data_dir}/infobox-properties_lang=nl__head7500_1MB.nt" ]
      then
-        echo 'Missing required RDF base file "'"${base_dir}/infobox-properties_lang=nl__head7500_1MB.nt"'"'
+        echo 'Missing required RDF base file "'"${data_dir}/infobox-properties_lang=nl__head7500_1MB.nt"'"'
         exit 1
      fi
-     if [ ! -e "${base_dir}/infobox-properties_lang=nl__head750_100kB.nt" ]
+     if [ ! -e "${data_dir}/infobox-properties_lang=nl__head750_100kB.nt" ]
      then
-        echo 'Missing required RDF base file "'"${base_dir}/infobox-properties_lang=nl__head750_100kB.nt"'"'
+        echo 'Missing required RDF base file "'"${data_dir}/infobox-properties_lang=nl__head750_100kB.nt"'"'
         exit 1
      fi
      if [ "${CONTENT_FILES_RDF_SIZE}" == '100000' ]
      then
-        CONTENT_RDF_ARG='--generate-rdf --base-rdf-file '"${base_dir}/infobox-properties_lang=nl__head750_100kB.nt"
+        CONTENT_RDF_ARG='--generate-rdf --base-rdf-file '"${data_dir}/infobox-properties_lang=nl__head750_100kB.nt"
      elif [ "${CONTENT_FILES_RDF_SIZE}" == '1000000' ]
      then
-        CONTENT_RDF_ARG='--generate-rdf --base-rdf-file '"${base_dir}/infobox-properties_lang=nl__head7500_1MB.nt"
+        CONTENT_RDF_ARG='--generate-rdf --base-rdf-file '"${data_dir}/infobox-properties_lang=nl__head7500_1MB.nt"
      elif [ "${CONTENT_FILES_RDF_SIZE}" == '10000000' ]
      then
-        CONTENT_RDF_ARG='--generate-rdf --base-rdf-file '"${base_dir}/infobox-properties_lang=nl__head75000_10MB.nt"
+        CONTENT_RDF_ARG='--generate-rdf --base-rdf-file '"${data_dir}/infobox-properties_lang=nl__head75000_10MB.nt"
      else
         echo "RDF file size ${CONTENT_FILES_RDF_SIZE} (${CONTENT_FILES_RDF_SIZE_NICK}) not supported"
         exit 1
@@ -763,7 +799,6 @@ function collect_access_tokens() {
   # Collect access tokens for all users, and store them in cache in well known location
   #
   # Input env vars:
-  #   $base_dir
   #   $CSS_PUBLIC_DNS_NAME
   #   $SERVER_NEUTRAL_CONFIG_FILE
 
@@ -816,7 +851,7 @@ function create_css_config_file() {
   local _CONFIG_FILE="$2"
 
   # Input env vars:
-  #   $base_dir
+  #   $env_file
 
   if [ ! -d "${_CONFIG_DIR}" ]
   then
@@ -828,7 +863,7 @@ function create_css_config_file() {
   chmod -R uog+r "${_CONFIG_DIR}"
   chmod -R og-w "${_CONFIG_DIR}"
 
-  echo "Updating CSS config using vars in '${base_dir}/setup_css.env'"
+  echo "Updating CSS config using vars in '${env_file}'"
   # Used env vars from setup_css.env:
   #   AUTHORIZATION='allow-all' (default) or 'webacl' or 'acp'
   #   RESOURCE_LOCKER='file' (default) or 'debug-void' or 'redis' or 'memory'
@@ -1074,7 +1109,7 @@ then
     cp -v /etc/nginx/sites-enabled/default /tmp/backup-nginx-sites-enabled-default
     certbot run --nginx --domain "${CSS_PUBLIC_DNS_NAME}" --agree-tos --register-unsafely-without-email
 
-    cp -v /etc/nginx/sites-enabled/default "${base_dir}"/backup-nginx-sites-enabled-default-after-nginx
+    cp -v /etc/nginx/sites-enabled/default /tmp/backup-nginx-sites-enabled-default-after-certbot
     cp -v /tmp/backup-nginx-sites-enabled-default /etc/nginx/sites-enabled/default
 
     cat >> '/etc/nginx/sites-enabled/default' <<"EOF"
