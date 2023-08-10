@@ -1,6 +1,8 @@
 ---
 - hosts: all
   become: yes
+  vars_files:
+    - ansible-variables.yaml
   tasks:
     - name: Prevent NetworkManager from being installed
       ansible.builtin.copy:
@@ -75,6 +77,7 @@
       ansible.builtin.git:
         repo: https://github.com/SolidLabResearch/solidlab-perfstat.git
         dest: /usr/local/src/solidlab-perfstat
+      when: install_perfstat
 
     - name: Setup venv with solidlab-perfstat
       ansible.builtin.pip:
@@ -82,6 +85,16 @@
           - file:///usr/local/src/solidlab-perfstat/
         virtualenv_command: '/usr/bin/python3 -m venv'
         virtualenv: /usr/local/venv/solidlab-perfstat/
+      when: install_perfstat
+
+    - name: Install perfstat Systemd Services
+      ansible.builtin.copy:
+        src: "files_css/perfstat.service"
+        dest: "/etc/systemd/system/perfstat.service"
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+      when: install_perfstat
 
     # TODO setup perfstart service and start it
     # exe in /usr/local/venv/solidlab-perfstat/bin/solidlab-perfstat
@@ -114,6 +127,7 @@
     - name: "Install relaxed-json"
       # rjson is the cli tool of relaxed-json. See https://github.com/phadej/relaxed-json
       # see also https://github.com/jqlang/jq/wiki/FAQ#processing-not-quite-valid-json
+      # this is used to manipulate CSS config, even when it is not strict json  (mostly trailing comma's)
       community.general.npm:
         global: true
         name: relaxed-json
@@ -122,15 +136,18 @@
     - name: "Install snapd"
       ansible.builtin.apt:
         name: snapd
+      when: css_use_https
 
     - name: Install snap core
       community.general.snap:
         name: core
+      when: css_use_https
 
     - name: Install certbot
       community.general.snap:
         name: certbot
         classic: true
+      when: css_use_https
 
     - name: Link certbot exe
       ansible.builtin.file:
@@ -139,8 +156,9 @@
         owner: root
         group: root
         state: link
+      when: css_use_https
 
-    - name: Install Exe provide_certs.sh and setup_css.sh
+    - name: Install Exe provide_certs.sh
       ansible.builtin.copy:
         src: "files_css/{{ item }}"
         dest: "/usr/local/bin/{{ item }}"
@@ -149,6 +167,16 @@
         mode: u=rwx,g=rx,o=rx
       loop:
          - provide_certs.sh
+      when: css_use_https
+
+    - name: Install Exe setup_css.sh
+      ansible.builtin.copy:
+        src: "files_css/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}"
+        owner: root
+        group: root
+        mode: u=rwx,g=rx,o=rx
+      loop:
          - setup_css.sh
 
     - name: Install setup_css.env
@@ -162,17 +190,13 @@
 
     # TODO check ${base_dir} in setup_css.sh
 
-    - name: Install Systemd Services
+    - name: Install css Systemd Services
       ansible.builtin.copy:
-        src: "files_css/{{ item }}.service"
-        dest: "/etc/systemd/system/{{ item }}.service"
+        src: "files_css/css.service"
+        dest: "/etc/systemd/system/css.service"
         owner: root
         group: root
         mode: u=rw,g=r,o=r
-      loop:
-         - perfstat
-         - css
-         - auth-cache-webserver
 
     - name: Install Template Systemd Service for css
       ansible.builtin.copy:
@@ -181,6 +205,15 @@
         owner: root
         group: root
         mode: u=rw,g=r,o=r
+
+    - name: Install auth-cache-webserver Systemd Services
+      ansible.builtin.copy:
+        src: "files_css/auth-cache-webserver.service"
+        dest: "/etc/systemd/system/auth-cache-webserver.service"
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+      when: start_auth_cache_webserver
 
     - name: Force systemd to reread configs
       ansible.builtin.systemd:
@@ -192,11 +225,13 @@
       ansible.builtin.git:
         repo: https://github.com/SolidLabResearch/css-populate.git
         dest: /usr/local/src/css-populate
+      when: install_server_css_populate
 
     - name: "Install css-populate"
       community.general.npm:
         global: true
         path: /usr/local/src/css-populate
+      when: install_server_css_populate
 
     - name: 'Copy dummy RDF'
       ansible.builtin.copy:
@@ -205,6 +240,7 @@
         owner: root
         group: root
         mode: u=rw,g=r,o=r
+      when: install_server_css_populate
 
     - name: 'Decompress dummy RDF'
       ansible.builtin.shell: |
@@ -216,6 +252,7 @@
       args:
         chdir: /usr/local/share/
         creates: /usr/local/share/infobox-properties_lang=nl__head75000_10MB.nt
+      when: install_server_css_populate
 
     # install_redis.sh
 
@@ -241,8 +278,10 @@
       ansible.builtin.git:
         repo: https://github.com/SolidLabResearch/css-flood.git
         dest: /usr/local/src/css-flood
+      when: install_server_css_flood
 
     - name: Install css-flood
       community.general.npm:
         global: true
         path: /usr/local/src/css-flood
+      when: install_server_css_flood
