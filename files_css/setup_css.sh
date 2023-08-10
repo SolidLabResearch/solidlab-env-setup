@@ -53,8 +53,13 @@ then
 fi
 
 
-CLIENT_PUBLIC_DNS_NAME="$(cat /etc/client_dns_name)"
-CSS_PUBLIC_DNS_NAME="$(cat /etc/css_dns_name)"
+#CLIENT_PUBLIC_DNS_NAME="$(cat /etc/client_dns_name)"
+#CSS_PUBLIC_DNS_NAME="$(cat /etc/css_dns_name)"
+
+if [ -z "$CSS_PUBLIC_DNS_NAME" ]
+then
+  CSS_PUBLIC_DNS_NAME='localhost'
+fi
 
 # Load environment variables from setup_css.env
 #   (allexport adds "export" to all of them)
@@ -79,11 +84,9 @@ systemctl daemon-reload
 
 # Start by stopping any old servers
 echo "Stopping CSS, traefik, auth-cache-webserver and nginx (if running)."
-systemctl stop css traefik nginx auth-cache-webserver
+systemctl stop css traefik nginx auth-cache-webserver  || echo 'ignoring stop failure'
 # If the above fails, there's typically an error in a systemd unit .service file
-
-# Then make sure we have the SSL cert we might need
-"${exe_dir}/provide_certs.sh"
+# Or the services simply don't exist on this specific setup
 
 if [ -z "$GIT_REPO_URL" ]
 then
@@ -178,11 +181,16 @@ CONTENT_FILES_RDF_SIZE=$(echo "${CONTENT_FILES_RDF_SIZE}" | tr -d '_\n')
 CONTENT_FILES_RDF_SIZE_NICK=$(echo "${CONTENT_FILES_RDF_SIZE}" | sed -e 's/000$/k/' | sed -e 's/000k$/M/' | sed -e 's/000M$/G/' )
 
 IS_CSS_HTTPS_SERVER='false'
+HTTP_PROTO_PREFIX="http"
 USED_CSS_PORT=3000
 if [ "${SERVER_FACTORY}" = 'https' ]
 then
   IS_CSS_HTTPS_SERVER='true'
+  HTTP_PROTO_PREFIX="https"
   USED_CSS_PORT=443
+
+  # Then make sure we have the SSL cert we might need
+  "${exe_dir}/provide_certs.sh"
 fi
 
 echo "Using CSS commit: $GIT_CHECKOUT_ARG"
@@ -272,7 +280,7 @@ function start_css() {
   if [ "${_USED_CSS_PORT}" -eq 443 ]
   then
     echo 'Making sure traefik is stopped'
-    systemctl stop traefik
+    systemctl stop traefik  || echo 'ignoring traefik stop failure'
   elif [ "${_USED_CSS_PORT}" -eq 3000 ]
   then
     echo 'Making sure traefik is running'
@@ -334,20 +342,22 @@ function start_css() {
       echo 'ERROR: CSS did not start correctly'
       exit 1
     fi
+  else
+    sleep 5
   fi
 
   # test SSL on 3000: openssl s_client -connect localhost:3000 -servername $(cat /etc/css_dns_name) -msg
 
   echo
-  echo -n "   Test CSS..."
+  echo -n "   Test CSS at ${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/ ..."
 #  echo -e "GET ${CSS_PUBLIC_DNS_NAME}/ HTTP/1.1\nHost: selftest\nConnection: close\n\n" | tee /dev/stdout | openssl s_client -connect "${CSS_PUBLIC_DNS_NAME}:443" -quiet
-  _CSS_TEST_OUTPUT="$(curl -s -I https://${CSS_PUBLIC_DNS_NAME}/)"
+  _CSS_TEST_OUTPUT="$(curl -s -I "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/" || true)"
 
   if ! echo "${_CSS_TEST_OUTPUT}" | grep -i -q 'x-powered-by: Community Solid Server'
   then
     echo " FAILED"
     echo 'ERROR: CSS Test failed.'
-    echo "       Ran command: curl -s -I https://${CSS_PUBLIC_DNS_NAME}/"
+    echo "       Ran command: curl -s -I ${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/"
     echo "       Hint: check CSS service log for more info"
     echo '       Output:'
     echo "${_CSS_TEST_OUTPUT}"
@@ -379,7 +389,7 @@ function update_css_service_file() {
 
   echo "Updating CSS systemd service to use config '$1' and root '$2'"
 
-  cp -v "/etc/systemd/system/css.service.base" /etc/systemd/system/
+#  cp -v "/etc/systemd/system/css.service.template" /etc/systemd/system/
   sed -e "s/<<CSS_DNS_NAME>>/${CSS_PUBLIC_DNS_NAME}/g" \
       -e "s#<<ENV_FILE>>#${env_file}#g" \
       -e "s#<<CSS_EXE>>#${EXE}#g" \
@@ -803,7 +813,7 @@ function generate_css_data() {
   fi
 
   set -x
-  css-populate --url "https://${CSS_PUBLIC_DNS_NAME}" \
+  css-populate --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}" \
       --generate-users \
       --user-count "${CONTENT_USER_COUNT}" \
       ${AUTHORIZATION_ARG} \
@@ -815,7 +825,7 @@ function generate_css_data() {
   set +x
   if "${_START_CSS}"
   then
-    systemctl stop css traefik
+    systemctl stop css traefik || true
   fi
 
   if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
@@ -858,13 +868,13 @@ function collect_access_tokens() {
   start_css
 
   echo "Collecting access tokens for all users"
-  css-flood --url "https://${CSS_PUBLIC_DNS_NAME}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+  css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
            --authenticate --authenticateCache all --filename dummy.txt \
            --steps 'loadAC,fillAC,validateAC,saveAC' \
            --ensure-auth-expiration 600 \
            --authCacheFile "${_AUTH_CACHE_FILE}" || touch "${_CSS_DATA_DIR}/ERROR"
 
-  systemctl stop css traefik
+  systemctl stop css traefik || true
 
   if [ -e "${_CSS_DATA_DIR}/ERROR" ]
   then
@@ -1040,20 +1050,23 @@ then
 
   echo '#########################################################'
 
-  # Add auth cache to content dir
-  if [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}" ] || [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}/.internal/accounts" ] || [ ! -e "${SERVER_DATA_CLEAN_AUTH_DIR}" ] || [ -e "${SERVER_DATA_CLEAN_AUTH_DIR}/ERROR" ]
+  if [ "${GENERATE_USERS,,}" == "true" ]
   then
-    echo "Need to make an auth-cache for $NICK-${CONTENT_ID} in ${SERVER_DATA_CLEAN_AUTH_DIR}"
-    echo "Filling '${SERVER_DATA_CLEAN_AUTH_DIR}' with clean data for CSS commit $NICK"
-    rm -rf "${SERVER_DATA_CLEAN_AUTH_DIR}"
-    cp -a "${CSS_COMMIT_CLEAN_DATA_DIR}" "${SERVER_DATA_CLEAN_AUTH_DIR}"
-    # copied all files, including hidden files and CSS server internal data
+    # Add auth cache to content dir
+    if [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}" ] || [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}/.internal/accounts" ] || [ ! -e "${SERVER_DATA_CLEAN_AUTH_DIR}" ] || [ -e "${SERVER_DATA_CLEAN_AUTH_DIR}/ERROR" ]
+    then
+      echo "Need to make an auth-cache for $NICK-${CONTENT_ID} in ${SERVER_DATA_CLEAN_AUTH_DIR}"
+      echo "Filling '${SERVER_DATA_CLEAN_AUTH_DIR}' with clean data for CSS commit $NICK"
+      rm -rf "${SERVER_DATA_CLEAN_AUTH_DIR}"
+      cp -a "${CSS_COMMIT_CLEAN_DATA_DIR}" "${SERVER_DATA_CLEAN_AUTH_DIR}"
+      # copied all files, including hidden files and CSS server internal data
 
-    collect_access_tokens "${SERVER_DATA_CLEAN_AUTH_DIR}" "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}"
+      collect_access_tokens "${SERVER_DATA_CLEAN_AUTH_DIR}" "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}"
 
-    du -hs "${CSS_COMMIT_CLEAN_DATA_DIR}" "${SERVER_DATA_CLEAN_AUTH_DIR}" || echo ''
-  else
-    echo "Will use exiting auth-cache for $NICK-${CONTENT_ID} in ${SERVER_DATA_CLEAN_AUTH_DIR}"
+      du -hs "${CSS_COMMIT_CLEAN_DATA_DIR}" "${SERVER_DATA_CLEAN_AUTH_DIR}" || echo ''
+    else
+      echo "Will use exiting auth-cache for $NICK-${CONTENT_ID} in ${SERVER_DATA_CLEAN_AUTH_DIR}"
+    fi
   fi
 fi
 
@@ -1190,7 +1203,7 @@ EOF
 else
   # probably already stopped
   echo "Stopping nginx as it is not needed"
-  systemctl stop nginx
+  systemctl stop nginx || true
 fi
 
 echo '#########################################################'
@@ -1213,8 +1226,7 @@ fi
 #########################################################
 
 # make authentication cache available
-
-if [ "$SERVER_UNDER_TEST" == "css" ]
+if [ "${GENERATE_USERS,,}" == "true" ] && [ "$SERVER_UNDER_TEST" == "css" ]
 then
   # This step is allowed to fail
   set +e
@@ -1223,7 +1235,7 @@ then
   echo "Configure and start authentication cache webserver at 8888"
 
   echo "Making sure that auth cache ${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE} is up to date"
-  css-flood --url "https://${CSS_PUBLIC_DNS_NAME}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+  css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
            --authenticate --authenticateCache all --filename dummy.txt \
            --steps 'loadAC,fillAC,validateAC,saveAC,testRequest' \
            --ensure-auth-expiration 600 \
@@ -1235,7 +1247,7 @@ then
     rm -v "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}"
 
     echo "Collecting access tokens for all users"
-    css-flood --url "https://${CSS_PUBLIC_DNS_NAME}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+    css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
              --authenticate --authenticateCache all --filename dummy.txt \
              --steps 'fillAC,validateAC,saveAC,testRequest' \
              --ensure-auth-expiration 600 \

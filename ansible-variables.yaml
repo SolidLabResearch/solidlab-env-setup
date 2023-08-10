@@ -2,7 +2,7 @@
 install_perfstat: false
 install_server_css_populate: false
 install_server_css_flood: false
-start_css: false
+start_css: true
 start_auth_cache_webserver: false
 css_use_https: false
 css_default_checkout_arg: main
