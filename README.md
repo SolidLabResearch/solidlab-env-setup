@@ -57,9 +57,27 @@ cookiecutter --no-input --verbose --output-dir generated_espec espec
 
 ### Step 2: Run the ESpec & Save the Inventory
 
-TODO
+Start jFed.
 
-### Step 3: Configure & run ansible
+Click on "Open ESpec":
+
+![Alt text](img/jfed-open-espec.png)
+
+Select "Local Directory", and click "Choose Dir".
+Choose the `generated_espec` directory, and click "Start ESpec":
+
+![Alt text](img/jfed-start-espec.png)
+
+Select a name for your experiment, and start it. Now wait until it is running.
+
+Finally, click "Export As", then "Export Configuration Management Settings (Ansible, Fabric, ...)":
+
+![Alt text](img/jfed-export-inventory.png)
+
+You will be able to choose a location to save the ansible config. You'll need to extract it from the zip file after saving.
+The ansible inventory is in the `ansible-hosts` file.
+
+### Step 3: Configure & Run Ansible
 
 Set the ansible variables, and run ansible. Provide ansible the inventory file.
 
