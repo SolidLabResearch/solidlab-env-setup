@@ -9,7 +9,7 @@ then
   etc_dir="/usr/local/etc"
 fi
 
-CSS_PUBLIC_DNS_NAME="$(cat /etc/css_dns_name)"
+CSS_PUBLIC_DNS_NAME="$(cat /etc/host_fqdn)"
 
 HTTPS_CERT_FILE="${etc_dir}/css/server_cert.pem"
 HTTPS_KEY_FILE="${etc_dir}/css/server_key.pem"

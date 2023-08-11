@@ -29,9 +29,9 @@ execute:
 #       #!/bin/bash -e
 #
 #       # Make client use the experiment link instead of the control link, even when connecting to the CSS DNS name
-#       sed -e '/ilabt\.iminds\.be/!s/^\(192.168.* css.*\)/\1 '"$(cat /etc/css_dns_name)"'/' -i /etc/hosts
+#       sed -e '/ilabt\.iminds\.be/!s/^\(192.168.* css.*\)/\1 '"$(cat /etc/host_fqdn)"'/' -i /etc/hosts
 #
-#       echo "/etc/hosts on client now forces experiment link IP for $(cat /etc/css_dns_name):"
+#       echo "/etc/hosts on client now forces experiment link IP for $(cat /etc/host_fqdn):"
 #       head -n 20 /etc/hosts
 #     path: client-use-exp-link.sh
 #     sudo: true

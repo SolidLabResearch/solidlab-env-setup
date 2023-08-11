@@ -52,13 +52,11 @@ then
   exit 1
 fi
 
-
-#CLIENT_PUBLIC_DNS_NAME="$(cat /etc/client_dns_name)"
-#CSS_PUBLIC_DNS_NAME="$(cat /etc/css_dns_name)"
-
+# The caller of setup_css.sh can set the FQDN
+# If not set by caller, use /etc/host_fqdn
 if [ -z "$CSS_PUBLIC_DNS_NAME" ]
 then
-  CSS_PUBLIC_DNS_NAME='localhost'
+  CSS_PUBLIC_DNS_NAME="$(cat /etc/host_fqdn)"
 fi
 
 # Load environment variables from setup_css.env
@@ -348,7 +346,7 @@ function start_css() {
     sleep 5
   fi
 
-  # test SSL on 3000: openssl s_client -connect localhost:3000 -servername $(cat /etc/css_dns_name) -msg
+  # test SSL on 3000: openssl s_client -connect localhost:3000 -servername $(cat /etc/host_fqdn) -msg
 
   echo
   echo -n "   Test CSS at ${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/ ..."
