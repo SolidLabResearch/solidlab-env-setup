@@ -183,11 +183,13 @@ CONTENT_FILES_RDF_SIZE_NICK=$(echo "${CONTENT_FILES_RDF_SIZE}" | sed -e 's/000$/
 IS_CSS_HTTPS_SERVER='false'
 HTTP_PROTO_PREFIX="http"
 USED_CSS_PORT=3000
+USED_CSS_PORT_SUFFIX=":3000"
 if [ "${SERVER_FACTORY}" = 'https' ]
 then
   IS_CSS_HTTPS_SERVER='true'
   HTTP_PROTO_PREFIX="https"
   USED_CSS_PORT=443
+  USED_CSS_PORT_SUFFIX=""  # none needed: http is already 443
 
   # Then make sure we have the SSL cert we might need
   "${exe_dir}/provide_certs.sh"
@@ -391,6 +393,7 @@ function update_css_service_file() {
 
 #  cp -v "/etc/systemd/system/css.service.template" /etc/systemd/system/
   sed -e "s/<<CSS_DNS_NAME>>/${CSS_PUBLIC_DNS_NAME}/g" \
+      -e "s#<<CSS_BASE_URL>>#${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}/#g" \
       -e "s#<<ENV_FILE>>#${env_file}#g" \
       -e "s#<<CSS_EXE>>#${EXE}#g" \
       -e "s#<<CSS_ROOT_PATH>>#${2}#g" \
@@ -813,7 +816,7 @@ function generate_css_data() {
   fi
 
   set -x
-  css-populate --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}" \
+  css-populate --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" \
       --generate-users \
       --user-count "${CONTENT_USER_COUNT}" \
       ${AUTHORIZATION_ARG} \
@@ -868,7 +871,7 @@ function collect_access_tokens() {
   start_css
 
   echo "Collecting access tokens for all users"
-  css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+  css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
            --authenticate --authenticateCache all --filename dummy.txt \
            --steps 'loadAC,fillAC,validateAC,saveAC' \
            --ensure-auth-expiration 600 \
@@ -1067,6 +1070,12 @@ then
     else
       echo "Will use exiting auth-cache for $NICK-${CONTENT_ID} in ${SERVER_DATA_CLEAN_AUTH_DIR}"
     fi
+  else
+    if [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}" ]
+    then
+      echo "Creating clean '${SERVER_DATA_CLEAN_AUTH_DIR}' for CSS commit $NICK"
+      cp -a "${CSS_COMMIT_CLEAN_DATA_DIR}" "${SERVER_DATA_CLEAN_AUTH_DIR}"
+    fi
   fi
 fi
 
@@ -1235,7 +1244,7 @@ then
   echo "Configure and start authentication cache webserver at 8888"
 
   echo "Making sure that auth cache ${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE} is up to date"
-  css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+  css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
            --authenticate --authenticateCache all --filename dummy.txt \
            --steps 'loadAC,fillAC,validateAC,saveAC,testRequest' \
            --ensure-auth-expiration 600 \
@@ -1247,7 +1256,7 @@ then
     rm -v "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}"
 
     echo "Collecting access tokens for all users"
-    css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+    css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
              --authenticate --authenticateCache all --filename dummy.txt \
              --steps 'fillAC,validateAC,saveAC,testRequest' \
              --ensure-auth-expiration 600 \
