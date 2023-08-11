@@ -8,6 +8,51 @@
 #      ansible.builtin.debug:
 #        var: ansible_facts
 
+#    - name: Print hostvars
+#      ansible.builtin.debug:
+#        var: hostvars
+
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        # Check if a usable FQDN is available (not a bare IPv4 or IPv6 and not "localhost")
+        # Prefer FQDN from inventory ansible_ssh_host, use ansible_facts['fqdn'] as fallback
+        inv_chosen_fqdn: "{{ hostvars[ inventory_hostname ][ 'ansible_ssh_host' ] }}"
+
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        inv_has_fqdn: "{{ not not( ( inv_chosen_fqdn | regex_search('^.*\\..*') ) and (inv_chosen_fqdn != 'localhost') and ( not ( inv_chosen_fqdn | regex_search('^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+') ) ) and ( not ( inv_chosen_fqdn | regex_search(':') ) ) ) }}"
+
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        facts_chosen_fqdn: "{{ ansible_facts['fqdn'] }}"
+
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        facts_has_fqdn: "{{ not not( (facts_chosen_fqdn) and ( facts_chosen_fqdn | regex_search('^.*\\..*') ) and (facts_chosen_fqdn != 'localhost') and ( not ( facts_chosen_fqdn | regex_search('^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+') ) ) and ( not ( facts_chosen_fqdn | regex_search(':') ) ) ) }}"
+
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        chosen_fqdn: "{{ inv_chosen_fqdn if inv_has_fqdn else facts_chosen_fqdn }}"
+
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        has_fqdn: "{{ inv_has_fqdn or facts_has_fqdn }}"
+
+    - name: Print system info
+      ansible.builtin.debug:
+        msg: |
+           System '{{ inventory_hostname }}'
+              has_fqdn {{ has_fqdn }}
+              chosen_fqdn '{{ chosen_fqdn }}'
+              ansible_ssh_host '{{ hostvars[inventory_hostname]['ansible_ssh_host'] }}'
+              ansible_facts fqdn '{{ ansible_facts['fqdn'] }}'
+              ansible_facts hostname '{{ ansible_facts['hostname'] }}'
+
+    - name: Check if https is possible
+      ansible.builtin.fail:
+        msg: If https is required, the host needs a DNS name
+      when: ( css_use_https and not use_dns )
+
     - name: Check python version
       ansible.builtin.fail:
         msg: "The system python version {{ ansible_facts['python_version' ]}} is too old. Python 3.11 or newer is required."
