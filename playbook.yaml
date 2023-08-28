@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: css_servers
   become: yes
   vars_files:
     - ansible-variables.yaml

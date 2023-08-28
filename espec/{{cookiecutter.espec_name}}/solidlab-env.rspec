@@ -16,7 +16,7 @@
     <interface client_id="css{{ i }}:if0">
       <ip address="192.168.0.{{ i + 1 }}" netmask="255.255.255.0" type="ipv4"/>
     </interface>
-    <ansible_group xmlns="http://jfed.iminds.be/rspec/ext/jfed/1" name="servers"/>
+    <ansible_group xmlns="http://jfed.iminds.be/rspec/ext/jfed/1" name="css_servers"/>
   </node>
 {% endfor %}
 

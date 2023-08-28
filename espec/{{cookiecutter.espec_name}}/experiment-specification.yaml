@@ -46,3 +46,16 @@ execute:
      path: expand-root-disk-caller.sh
    - bundled: scripts/utils.sh
      sudo: true
+ansible:
+    host:
+       type: EXISTING
+       name: css0
+       galaxy-command: /usr/bin/ansible-galaxy
+       playbook-command: /usr/bin/ansible-playbook
+       execute: scripts/setup_ansible.sh
+    galaxy:
+       - '../../ansible-galaxy-requirements.yaml'
+    playbook:
+       - bundled: '../../playbook.yaml'
+#         extra-vars-from: '../../ansible-variables.yaml'
+         debug: 2
