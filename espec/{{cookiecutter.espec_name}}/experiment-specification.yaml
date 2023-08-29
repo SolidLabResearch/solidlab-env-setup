@@ -61,6 +61,9 @@ ansible:
        name: css0
        galaxy-command: /usr/local/bin/ansible-galaxy
        playbook-command: /usr/local/bin/ansible-playbook
+       upload:
+         - '../../files_css/'
+         - '../../files_all/'
        execute: scripts/setup_ansible.sh
     galaxy:
        - '../../ansible-galaxy-requirements.yaml'
