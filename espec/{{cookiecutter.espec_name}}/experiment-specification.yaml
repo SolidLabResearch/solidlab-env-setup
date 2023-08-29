@@ -46,15 +46,15 @@ execute:
      path: expand-root-disk-caller.sh
    - bundled: scripts/utils.sh
      sudo: true
-   - direct: |
-        #!/bin/bash -xe
-        
-        # This script is idempotent
-       
-        DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:deadsnakes/ppa
-        DEBIAN_FRONTEND=noninteractive apt-get install -y -f python3 python3-venv python3-pip python3.11 python3.11-venv
-     sudo: true
-     path: upgrade-python.sh
+#   - direct: |
+#        #!/bin/bash -xe
+#
+#        # This script is idempotent
+#
+#        DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:deadsnakes/ppa
+#        DEBIAN_FRONTEND=noninteractive apt-get install -y -f python3 python3-venv python3-pip python3.11 python3.11-venv
+#     sudo: true
+#     path: upgrade-python.sh
 ansible:
     host:
        type: EXISTING
