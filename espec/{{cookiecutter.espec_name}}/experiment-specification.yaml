@@ -50,9 +50,9 @@ execute:
         #!/bin/bash -xe
         
         # This script is idempotent
-        
-        DEBIAN_FRONTEND=noninteractive apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y -f python3 python3-venv python3-pip
+       
+        DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:deadsnakes/ppa
+        DEBIAN_FRONTEND=noninteractive apt-get install -y -f python3 python3-venv python3-pip python3.11 python3.11-venv
      sudo: true
      path: upgrade-python.sh
 ansible:
@@ -66,5 +66,5 @@ ansible:
        - '../../ansible-galaxy-requirements.yaml'
     playbook:
        - bundled: '../../playbook.yaml'
-#         extra-vars-from: '../../ansible-variables.yaml'
+         extra-vars-from: '../../ansible-variables.yaml'
          debug: 2

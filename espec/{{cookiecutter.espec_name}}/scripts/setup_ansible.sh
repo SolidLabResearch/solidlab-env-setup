@@ -1,5 +1,8 @@
 #!/bin/bash -xe
-DEBIAN_FRONTEND=noninteractive sudo apt-get update
+if [ "$(find /var/lib/apt/lists -cmin -60 -type f | wc -l)" -gt 0 ]
+then
+  DEBIAN_FRONTEND=noninteractive sudo apt-get update
+fi
 
 # Too old
 #DEBIAN_FRONTEND=noninteractive sudo apt-get install --no-install-recommends -y -f ansible
