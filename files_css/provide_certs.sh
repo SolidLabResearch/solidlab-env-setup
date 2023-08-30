@@ -18,7 +18,7 @@ if [ ! -e "/etc/letsencrypt/live/${CSS_PUBLIC_DNS_NAME}/fullchain.pem" ]
 then
   echo 'First run! Setting up certbot certificate.'
   # Stop any service listening on port 80 or 443
-  systemctl stop css nginx traefik
+  systemctl stop css nginx traefik || true
   sleep 1
   certbot certonly --standalone --non-interactive --domain "${CSS_PUBLIC_DNS_NAME}" --agree-tos --register-unsafely-without-email
 
@@ -54,7 +54,7 @@ fi
 
 echo "Need to update cert! Certificate expires at ${CERT_NOT_AFTER}. Now is $(date '+%FT%TZ')."
 set -x
-systemctl stop css nginx traefik
+systemctl stop css nginx traefik || true
 sleep 1
 certbot renew --standalone --non-interactive
 set +x

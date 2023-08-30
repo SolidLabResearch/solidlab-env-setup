@@ -47,6 +47,13 @@ Downsides:
 
 Prerequisites: Install ansible, cookiecutter and jFed
 
+### Step 0: Configure ansible variables
+
+Set the ansible variables in `ansible-variables.yaml`.
+
+Change these variables:
+- `css_use_https`: set to `true` for https (recommended), `false` for http.
+
 ### Step 1: Make the ESpec
 
 Use cookiecutter to generate an ESpec with the number of nodes you need.
@@ -70,6 +77,8 @@ Choose the `generated_espec` directory, and click "Start ESpec":
 
 Select a name for your experiment, and start it. Now wait until it is running.
 
+### Step 3 (optional): Extract css root URL list (JSON) 
+
 Finally, click "Export As", then "Export Configuration Management Settings (Ansible, Fabric, ...)":
 
 ![Alt text](img/jfed-export-inventory.png)
@@ -77,15 +86,10 @@ Finally, click "Export As", then "Export Configuration Management Settings (Ansi
 You will be able to choose a location to save the ansible config. You'll need to extract it from the zip file after saving.
 The ansible inventory is in the `ansible-hosts` file.
 
-### Step 3: Configure & Run Ansible
-
-Set the ansible variables, and run ansible. Provide ansible the inventory file.
-
-TODO
-
-### Step 4 (optional): Extract css root URL list (JSON) 
-
-TODO
+Get the list of CSS servers with:
+```shell
+sed -n '/^\[css_servers\]$/,$s#.*ansible_ssh_host=\([^ \t]*\).*#https://\1#p' < ansible-hosts
+```
 
 ### Step 5: Renew or Terminate Experiment
 
