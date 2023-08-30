@@ -34,6 +34,7 @@ fi
 ########################################################################################################################
 
 # Certbit sets up auto-renew, so we just always have to copy the latest certificate to where we expect it
+mkdir -p "${etc_dir}/css/"
 cp -v "/etc/letsencrypt/live/${CSS_PUBLIC_DNS_NAME}/fullchain.pem" "${HTTPS_CERT_FILE}"
 cp -v "/etc/letsencrypt/live/${CSS_PUBLIC_DNS_NAME}/privkey.pem" "${HTTPS_KEY_FILE}"
 
