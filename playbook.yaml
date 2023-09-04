@@ -419,3 +419,11 @@
       shell: setup_css.sh
       when: start_css
       timeout: "{{ 20 * 60 }}"
+    # setup_css.sh writes to /usr/local/share/css_url
+
+    - name: Collect server URLs
+      ansible.builtin.fetch:
+        src: /usr/local/share/css_url
+        dest: css_url_{{ inventory_hostname }}
+        flat: yes
+      when: start_css

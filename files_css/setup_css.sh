@@ -25,6 +25,7 @@ exec 2>&1
 
 install_prefix="/usr/local/"
 etc_dir="/usr/local/etc/"
+share_dir="/usr/local/share/"
 
 if [ "$(dirname "${exe_dir}")" == '/usr/local' ]
 then
@@ -540,8 +541,8 @@ function install_css() {
   jq '."@graph"[].config.ttl' < config/identity/handler/provider-factory/identity.json
   echo
 
-  if [ "$SERVER_FACTORY" == "https" ]
-  then
+#  if [ "$SERVER_FACTORY" == "https" ]  # do this always, we just don't use https.json if "$SERVER_FACTORY" != "https"
+#  then
     echo 'Hardcoding HTTPS certificate locations:'
     https_no_cli_config_file="config/http/server-factory/https-no-cli-example.json"
     if [ -e "${https_no_cli_config_file}" ]
@@ -575,7 +576,7 @@ function install_css() {
         fi
       done
     fi
-  fi
+#  fi
 
   ##### make copies to be backward compatible:
   #####    server-factory/https -> server-factory/https-no-websockets or server-factory/https-example
@@ -585,14 +586,15 @@ function install_css() {
   # make older config forward compatible by creating http.json and https.json
   if [ -e 'config/http/server-factory/https-no-websockets.json' ] && [ ! -e 'config/http/server-factory/https.json' ]
   then
-    cp 'config/http/server-factory/https-no-websockets.json' 'config/http/server-factory/https.json'
+    cp -v 'config/http/server-factory/https-no-websockets.json' 'config/http/server-factory/https.json'
   fi
   if [ -e 'config/http/server-factory/no-websockets.json' ] && [ ! -e 'config/http/server-factory/http.json' ]
   then
-    cp 'config/http/server-factory/no-websockets.json' 'config/http/server-factory/http.json'
+    cp -v 'config/http/server-factory/no-websockets.json' 'config/http/server-factory/http.json'
   fi
   if [ -e 'config/http/server-factory/http.json' ] && [ ! -e 'config/http/server-factory/https.json' ]
   then
+    echo 'Creating https.json from http.json'
     #"options_https": true,
     jq 'del(..|.webSocketHandler?) | (..|."@type"? | select(. == "WebSocketServerFactory")) = "BaseHttpServerFactory" | ."@graph"[].options_https = "true" | ."@graph"[].options_key = "'"${HTTPS_KEY_FILE}"'" | ."@graph"[].options_cert = "'"${HTTPS_CERT_FILE}"'"' \
        < 'config/http/server-factory/http.json' \
@@ -601,7 +603,7 @@ function install_css() {
   # make older config forward compatible by creating middleware/default.json
   if [ -e 'config/http/middleware/no-websockets.json' ] && [ ! -e 'config/http/middleware/default.json' ]
   then
-    cp 'config/http/middleware/no-websockets.json' 'config/http/middleware/default.json'
+    cp -v 'config/http/middleware/no-websockets.json' 'config/http/middleware/default.json'
   fi
 
   # make pre file locker configs compatible by replacing file locker with debug-void
@@ -1275,7 +1277,10 @@ fi
 #########################################################
 
 echo '******************************************************'
-echo "* $SERVER_UNDER_TEST is configured and running for your Experiment. *"
+echo "* $SERVER_UNDER_TEST is configured and running for your Experiment *"
+echo "* at ${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX} "
 echo '******************************************************'
+
+echo "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" > "${share_dir}css_url"
 
 exit 0
