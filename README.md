@@ -35,7 +35,7 @@ TODO
 
 
 
-## Using an ESpec to test on the virtual wall
+## Using an ESpec to test on the virtual wall (with jFed Experiment GUI)
 
 Upsides:
 - Real bare metal
@@ -45,9 +45,9 @@ Downsides:
 - Slow
 - Multiple steps
 
-Prerequisites: Install ansible, cookiecutter and jFed
+Prerequisites: Install cookiecutter and jFed
 
-### Step 1: Configure ESpec generation parameters
+### Step 0: Configure ESpec generation parameters
 
 Edit `espec/cookiecutter.json` to customize some parameters. 
 The most obvious one to change is `server_count`, to select the number of servers needed. 
@@ -80,7 +80,7 @@ Set the ansible variables in `ansible-variables.yaml`.
 You can mostly leave these as is, but this variable is useful:
 - `css_use_https`: set to `true` for https (recommended), `false` for http.
 
-### Step 3: Run the ESpec & Save the Inventory
+### Step 3: Run the ESpec
 
 Start jFed.
 
@@ -100,25 +100,87 @@ Select a name for your experiment, and start it. Now wait until it is running, a
 On the ansible node (first CSS server in experiment) ansible will write files with URL info. You can thus gather all URLs with:
 
 ```shell
-head ~/ansible/css_url_*
+cat ~/ansible/css_url_* > all_urls
 ```
 
-To get the same list on the jFed machine, in jFed, click "Export As", then "Export Configuration Management Settings (Ansible, Fabric, ...)":
-
-![Alt text](img/jfed-export-inventory.png)
-
-You will be able to choose a location to save the ansible config. You'll need to extract it from the zip file after saving.
-The ansible inventory is in the `ansible-hosts` file.
-
-Open a terminal and `cd` to the directory with the `ansible-hosts` file.
-
-Get the list of CSS servers with this command:
-```shell
-sed -n '/^\[css_servers\]$/,$s#.*ansible_ssh_host=\([^ \t]*\).*#https://\1#p' < ansible-hosts
-```
+To get the same list from the jFed GUI, login to the `css0` node and run the command above.
 
 ### Step 5: Renew or Terminate Experiment
 
 Inside jFed, you'll need to renew the experiment if you plan to use it for a longer time.
 
 If you're done with the experiment, don't forget to terminate the experiment.
+
+## Using an ESpec to test on the virtual wall (with jFed CLI2)
+
+Upsides:
+- Real bare metal
+- DNS, so working https
+
+Downsides:
+- Slow
+- Slightly more complex setup
+
+Prerequisites: Install cookiecutter and jFed CLI2
+
+### Step 0, 1, 2
+
+Same as for jFed GUI.
+
+### Step 3: Run the ESpec
+
+Edit `jfed-cli2-run-espec.yaml`. You'll need to replace the following:
+- `<<GENERATED_DIR>>`: The absolute path of the generated dir with `jfed-cli2-run-espec.yaml` and `experiment-specification.yaml` in it.
+- `<<YOUR_PORTAL_PROJECT>>`: The project you want to create an experiment in
+- `<<YOUR_WANTED_EXPERIMENT_NAME>>`: A name for your new experiment
+- `<<YOUR_LOGIN_PEM>>`: The login file for your portal account. You can download this at the bottom of the homepage of the account portal.
+
+Execute this file with jFed CLI2:
+```shell
+COMMAND_FILE="$(readlink -f jfed-cli2-run-espec.yaml)" 
+cd <jfed_cli_utils_dir>
+java -jar experimenter-cli2.jar -a "${COMMAND_FILE}"
+```
+
+Now wait until the experiment is running, and the ESpec and ansible script have successfully completed.
+
+### Step 4 (optional): Extract css root URL list (JSON) 
+
+#### Option 1: manual `scp`
+
+To get the same list when using the jFed CLI to execute the ESpec, 
+you'll notice that the jFed CLI writes a file `ssh_info.csv` when running the CLI (this is requested in the ESpec).
+
+You can download the URL files and then use `cat` as before to summarize them:
+```shell
+cd <jfed_cli_utils_dir>
+ls ssh_info.csv
+scp "$(grep -e '^css0,' ssh_info.csv | cut -d, -f6):~/ansible/css_url_*" .
+cat css_url_* | tee all_urls
+```
+
+#### Option2: jFed CLI2 fetch
+
+Alternatively, you can use jFed CLI2 to get a file with all URLs.
+
+Edit `jfed-cli2-fetch-urls.yaml`. You'll again need to replace the following:
+- `<<GENERATED_DIR>>`: The absolute path of the generated dir with `jfed-cli2-run-espec.yaml` and `experiment-specification.yaml` in it. Or another dir in which you want the output file `css_url` to be written.
+- `<<YOUR_PORTAL_PROJECT>>`: The project you created the experiment in
+- `<<YOUR_EXPERIMENT_NAME>>`: The name of the now running experiment
+- `<<YOUR_LOGIN_PEM>>`: The login file for your portal account.
+
+Execute this file with jFed CLI2:
+```shell
+COMMAND_FILE="$(readlink -f jfed-cli2-fetch-urls.yaml)" 
+cd <jfed_cli_utils_dir>
+java -jar experimenter-cli2.jar -a "${COMMAND_FILE}"
+```
+
+You'll now find a file `css_url` in the dir with `jfed-cli2-fetch-urls.yaml`, which contains all CSS server URLs.
+
+### Step 5: Renew or Terminate Experiment
+
+Inside jFed, you'll need to renew the experiment if you plan to use it for a longer time.
+
+If you're done with the experiment, don't forget to terminate the experiment.
+

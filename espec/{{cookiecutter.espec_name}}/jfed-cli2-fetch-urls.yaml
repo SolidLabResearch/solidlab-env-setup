@@ -1,0 +1,21 @@
+---
+action: SSHFETCH
+localTargetDir: <<GENERATED_DIR>>
+merge: true
+remoteFile: /usr/local/share/css_url
+slice:
+  failIfNoProject: true
+  failOnExistingSlice: false
+  failOnNonExistingSlice: true
+  renewExistingSliceIfNeeded: false
+  projectSource: PROVIDED
+  project: <<YOUR_PORTAL_PROJECT>>
+  sliceName: <<YOUR__EXPERIMENT_NAME>>
+user:
+  pem:
+    - <<YOUR_LOGIN_PEM>>
+ignoreSliceRecoverTimeout: true
+debugOutputs:
+- format: TXT_FULL
+  level: DEBUG
+  target: STDOUT

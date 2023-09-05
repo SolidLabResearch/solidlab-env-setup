@@ -1,0 +1,39 @@
+action: RUN
+deleteOn:
+  failBecomeReady: false
+  failConnectivityTest: false
+  failCreate: true
+  failESpec: false
+  failLinkTest: false
+experiment:
+  eSpec:
+    source: PROVIDE_DIR
+    providedContentSource: <<GENERATED_DIR>>
+  slice:
+    expireTimeMin: 15
+    failIfNoProject: true
+    failOnExistingSlice: false
+    projectSource: PROVIDED
+    project: <<YOUR_PORTAL_PROJECT>>
+    sliceName: <<YOUR_WANTED_EXPERIMENT_NAME>>
+  waitForReady:
+    maxTimeMin: 30
+shareWith:
+  projectMembers: false
+user:
+  pem:
+  - <<YOUR_LOGIN_PEM>>
+actionOutputs:
+    - format: TEXT
+      target: STDOUT
+#debugOutputs:
+#    - format: TXT_FULL
+#      target: STDOUT
+#      level: DEBUG
+#callOutputs:
+#    - format: TEXT
+#      target: FILE
+#      filename: calls.txt
+#eSpecExecuteLogOutputs:
+#    - location: <<YOUR_DEBUG_OUTPUT_DIR>>
+#      target: FILE

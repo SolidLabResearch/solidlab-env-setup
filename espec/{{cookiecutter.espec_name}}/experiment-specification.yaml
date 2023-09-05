@@ -1,5 +1,8 @@
 version: 1.0-basic
 rspec: solidlab-env.rspec
+output:
+  - type: SSH_INFO_CSV
+    destination: 'ssh_info.csv'
 upload:
    - download: https://gitlab.ilabt.imec.be/wvdemeer/wall-public-scripts/-/raw/master/expand-root-disk.sh?inline=false
      path: ~/expand-root-disk.sh
