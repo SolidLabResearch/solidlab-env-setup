@@ -42,7 +42,14 @@ vagrant ssh
 
 ### Optional step 4: Get css root URL list
 
-You can get a list of CSS server root URLs with:
+Ansible will write files with URL info in the last playbook step. You can thus gather all URLs with:
+
+```shell
+cat css_url_* > all_urls
+```
+
+
+You can also just create a (the predictable) list of CSS server root URLs with something like:
 
 ```shell
 for i in $(seq 0 $(( CSS_COUNT - 1 )) )

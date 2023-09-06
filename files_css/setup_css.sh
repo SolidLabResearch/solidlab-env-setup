@@ -199,6 +199,13 @@ then
   "${exe_dir}/provide_certs.sh"
 fi
 
+LOCAL_BASE_URL="${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}:3000/"
+GLOBAL_BASE_URL="${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}/"
+if [ -n "${OVERRIDE_BASE_URL}" ]
+then
+  GLOBAL_BASE_URL="${OVERRIDE_BASE_URL}"
+fi
+
 echo "Using CSS commit: $GIT_CHECKOUT_ARG"
 
 NICK=$(echo "$GIT_CHECKOUT_ARG" | tr -d -c '[:alnum:]')
@@ -384,6 +391,8 @@ function update_css_service_file() {
   # Rewrite css.service with the correct settings
   #
   # Input env vars:
+  #   $LOCAL_BASE_URL
+  #   $GLOBAL_BASE_URL
   #   $CSS_PUBLIC_DNS_NAME
   #   $env_file
   #   $EXE
@@ -392,12 +401,19 @@ function update_css_service_file() {
   #   $1 = CONFIG_FILE
   #   $2 = SERVER_DATA_DIR
   #   $3 = CSS_PORT_TO_USE
+  #   $4 = neutral ("true" or "false")
 
   echo "Updating CSS systemd service to use config '$1' and root '$2'"
 
+  BASE_URL="${GLOBAL_BASE_URL}"
+  if $4
+  then
+    BASE_URL="${lOCAL_BASE_URL}"
+  fi
+
 #  cp -v "/etc/systemd/system/css.service.template" /etc/systemd/system/
   sed -e "s/<<CSS_DNS_NAME>>/${CSS_PUBLIC_DNS_NAME}/g" \
-      -e "s#<<CSS_BASE_URL>>#${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}/#g" \
+      -e "s#<<CSS_BASE_URL>>#${BASE_URL}#g" \
       -e "s#<<ENV_FILE>>#${env_file}#g" \
       -e "s#<<CSS_EXE>>#${EXE}#g" \
       -e "s#<<CSS_ROOT_PATH>>#${2}#g" \
@@ -748,7 +764,7 @@ function generate_css_data() {
 
   if "${_START_CSS}"
   then
-    update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000
+    update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000 true
     start_css
   fi
 
@@ -872,7 +888,7 @@ function collect_access_tokens() {
     exit 1
   fi
 
-  update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000
+  update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000 true
   start_css
 
   echo "Collecting access tokens for all users"
@@ -1093,7 +1109,7 @@ echo '* CSS Install ready ***'
 echo '***********************'
 
 create_css_config_file "${CONFIG_DIR}" "${CONFIG_FILE}"
-update_css_service_file "${CONFIG_FILE}" "${SERVER_DATA_DIR}" "${USED_CSS_PORT}"
+update_css_service_file "${CONFIG_FILE}" "${SERVER_DATA_DIR}" "${USED_CSS_PORT}" false
 
 if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
 then
@@ -1234,6 +1250,7 @@ if [ "$SERVER_UNDER_TEST" == "css" ] && [ "${STORAGE_BACKEND}" == 'memory' ]
 then
   # we can only add the users and data now that the actual CSS has started
   echo "Need to generate data for $NICK-${CONTENT_ID} in ${CSS_COMMIT_CLEAN_DATA_DIR}"
+  # this uses :3000, but we might not be running on that port. So this will probably fail.
   generate_css_data "${CSS_COMMIT_CLEAN_DATA_DIR}"
 fi
 
@@ -1283,9 +1300,9 @@ fi
 
 echo '******************************************************'
 echo "* $SERVER_UNDER_TEST is configured and running for your Experiment *"
-echo "* at ${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX} "
+echo "* at ${GLOBAL_BASE_URL} "
 echo '******************************************************'
 
-echo "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" > "${share_dir}css_url"
+echo "${GLOBAL_BASE_URL}" > "${share_dir}css_url"
 
 exit 0

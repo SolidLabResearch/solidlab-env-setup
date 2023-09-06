@@ -93,7 +93,8 @@ Vagrant.configure("2") do |config|
                      ansible.playbook = "playbook.yaml"
                      ansible.groups = {
                        "css_servers" => (0..css_last_index).map { |j| "css#{j}" },
-                    }
+                     }
+                     ansible.host_vars = (0..css_last_index).to_h { |a| ["css#{a}", {"base_url" => "http://localhost:#{3000 + a}/"}] }
                    end
                end
        end
