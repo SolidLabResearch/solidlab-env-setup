@@ -419,6 +419,8 @@
       shell: setup_css.sh
       when: start_css
       timeout: "{{ 20 * 60 }}"
+      environment:
+        CSS_PUBLIC_DNS_NAME: "{{ '' if css_use_https else 'localhost' }}"
     # setup_css.sh writes to /usr/local/share/css_url
 
     - name: Collect server URLs

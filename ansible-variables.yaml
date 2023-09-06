@@ -1,5 +1,5 @@
 ---
-css_use_https: true
+css_use_https: false
 start_css: true
 css_default_checkout_arg: main
 install_perfstat: false

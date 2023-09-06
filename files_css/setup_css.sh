@@ -53,18 +53,30 @@ then
   exit 1
 fi
 
-# The caller of setup_css.sh can set the FQDN
-# If not set by caller, use /etc/host_fqdn
-if [ -z "$CSS_PUBLIC_DNS_NAME" ]
-then
-  CSS_PUBLIC_DNS_NAME="$(cat /etc/host_fqdn)"
-fi
-
 # Load environment variables from setup_css.env
 #   (allexport adds "export" to all of them)
 set -o allexport
 source "${env_file}"
 set +o allexport
+
+if [ -z "$SERVER_FACTORY" ]
+then
+  echo 'Missing env var SERVER_FACTORY. Defaulting to SERVER_FACTORY="http"'
+  SERVER_FACTORY='http'
+  export SERVER_FACTORY='http'
+fi
+
+# The caller of setup_css.sh can set the FQDN
+# If not set by caller, use /etc/host_fqdn
+if [ -z "$CSS_PUBLIC_DNS_NAME" ]
+then
+  if [ "$SERVER_FACTORY" == "https" ]
+  then
+    CSS_PUBLIC_DNS_NAME="$(cat /etc/host_fqdn)"
+  else
+    CSS_PUBLIC_DNS_NAME="localhost"
+  fi
+fi
 
 if [ -z "$WORKERS" ]
 then
@@ -133,13 +145,6 @@ then
   echo 'Missing env var STORAGE_BACKEND. Defaulting to STORAGE_BACKEND="file"'
   STORAGE_BACKEND='file'
   export STORAGE_BACKEND='file'
-fi
-
-if [ -z "$SERVER_FACTORY" ]
-then
-  echo 'Missing env var SERVER_FACTORY. Defaulting to SERVER_FACTORY="http"'
-  SERVER_FACTORY='http'
-  export SERVER_FACTORY='http'
 fi
 
 if [ -z "$NOTIFICATION_SERVER_CONFIG" ]

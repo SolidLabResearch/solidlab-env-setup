@@ -14,6 +14,25 @@ Downsides:
 
 Prerequisites: install ansible and vagrant
 
+### Optional step 1: Configure number of servers in Vagrantfile
+
+Just export the wanted numer of VMs as an env variable:
+
+```shell
+export CSS_COUNT=2
+```
+
+Optionally, you can hardcode this in the `Vagrantfile`, so it doesn't depend on the environment.
+
+### Optional step 2: Configure ansible
+
+Set the ansible variables in `ansible-variables.yaml`.
+
+You can mostly leave these as is, but this variable is useful:
+- `css_use_https`: set to `false` for http (recommended with vagrant), `true` for https (doesn't work with vagrant).
+
+### step 3: Start the VMs
+
 ```shell
 ansible-galaxy install -r ansible-galaxy-requirements.yaml
 vagrant up
@@ -21,19 +40,16 @@ vagrant up
 vagrant ssh
 ```
 
-### Optional step 1: Configure number of servers in Vagrantfile
+### Optional step 4: Get css root URL list
 
-TODO
+You can get a list of CSS server root URLs with:
 
-### Optional step 2: Configure ansible
-
-TODO
-
-### Optional step 3: Extract ansible inventory and or css root URL list
-
-TODO
-
-
+```shell
+for i in $(seq 0 $(( CSS_COUNT - 1 )) )
+do
+  echo "http://localhost:$(( $i + 3000 ))/"
+done
+```
 
 ## Using an ESpec to test on the virtual wall (with jFed Experiment GUI)
 
