@@ -69,35 +69,37 @@
 # Change setup_css.env according to ansible variables
 
 - name: Set defaults in setup_css.env
-  ansible.builtin.lineinfile:
-    path: /usr/local/etc/setup_css.env
-    regexp: '^GIT_CHECKOUT_ARG='
-    line: GIT_CHECKOUT_ARG={{ css_default_checkout_arg }}
+  block:
+      - name: Set GIT_CHECKOUT_ARG
+        ansible.builtin.lineinfile:
+          path: /usr/local/etc/setup_css.env
+          regexp: '^GIT_CHECKOUT_ARG='
+          line: GIT_CHECKOUT_ARG={{ css_default_checkout_arg }}
 
-- name: Set defaults in setup_css.env
-  ansible.builtin.lineinfile:
-    path: /usr/local/etc/setup_css.env
-    regexp: '^GENERATE_USERS='
-    line: GENERATE_USERS={{ css_default_generate_users }}
+      - name: Set GENERATE_USERS
+        ansible.builtin.lineinfile:
+          path: /usr/local/etc/setup_css.env
+          regexp: '^GENERATE_USERS='
+          line: GENERATE_USERS={{ css_default_generate_users }}
 
-- name: Set defaults in setup_css.env
-  ansible.builtin.lineinfile:
-    path: /usr/local/etc/setup_css.env
-    regexp: '^GENERATE_CONTENT='
-    line: GENERATE_CONTENT={{ css_default_generate_content }}
+      - name: Set GENERATE_CONTENT
+        ansible.builtin.lineinfile:
+          path: /usr/local/etc/setup_css.env
+          regexp: '^GENERATE_CONTENT='
+          line: GENERATE_CONTENT={{ css_default_generate_content }}
 
-- name: Set defaults in setup_css.env
-  ansible.builtin.lineinfile:
-    path: /usr/local/etc/setup_css.env
-    regexp: '^SERVER_FACTORY='
-    line: SERVER_FACTORY={{ 'https' if css_use_https else 'http' }}
+      - name: Set SERVER_FACTORY
+        ansible.builtin.lineinfile:
+          path: /usr/local/etc/setup_css.env
+          regexp: '^SERVER_FACTORY='
+          line: SERVER_FACTORY={{ 'https' if css_use_https else 'http' }}
 
-# Don't do this: variables starting with CSS_ are seen as args by CSS
-#    - name: Set defaults in setup_css.env
-#      ansible.builtin.lineinfile:
-#        path: /usr/local/etc/setup_css.env
-#        regexp: '^CSS_PUBLIC_DNS_NAME='
-#        line: CSS_PUBLIC_DNS_NAME='{{ '' if css_use_https else 'localhost' }}'
+      # Don't do this: variables starting with CSS_ are seen as args by CSS
+      #    - name: Set CSS_PUBLIC_DNS_NAME
+      #      ansible.builtin.lineinfile:
+      #        path: /usr/local/etc/setup_css.env
+      #        regexp: '^CSS_PUBLIC_DNS_NAME='
+      #        line: CSS_PUBLIC_DNS_NAME='{{ '' if css_use_https else 'localhost' }}'
 
 - name: Set OVERRIDE_BASE_URL in setup_css.env
   ansible.builtin.lineinfile:

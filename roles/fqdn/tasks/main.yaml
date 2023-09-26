@@ -1,28 +1,30 @@
 - name: Find system FQDN (if any)
-  ansible.builtin.set_fact:
-    # Check if a usable FQDN is available (not a bare IPv4 or IPv6 and not "localhost")
-    # Prefer FQDN from inventory ansible_ssh_host, use ansible_facts['fqdn'] as fallback
-    inv_chosen_fqdn: "{{ hostvars[ inventory_hostname ][ 'ansible_ssh_host' ] }}"
+  # Check if a usable FQDN is available (not a bare IPv4 or IPv6 and not "localhost")
+  # Prefer FQDN from inventory ansible_ssh_host, use ansible_facts['fqdn'] as fallback
+  block:
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        inv_chosen_fqdn: "{{ hostvars[ inventory_hostname ][ 'ansible_ssh_host' ] }}"
 
-- name: Find system FQDN (if any)
-  ansible.builtin.set_fact:
-    inv_has_fqdn: "{{ not not( ( inv_chosen_fqdn | regex_search('^.*\\..*') ) and (inv_chosen_fqdn != 'localhost') and ( not ( inv_chosen_fqdn | regex_search('^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+') ) ) and ( not ( inv_chosen_fqdn | regex_search(':') ) ) ) }}"
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        inv_has_fqdn: "{{ not not( ( inv_chosen_fqdn | regex_search('^.*\\..*') ) and (inv_chosen_fqdn != 'localhost') and ( not ( inv_chosen_fqdn | regex_search('^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+') ) ) and ( not ( inv_chosen_fqdn | regex_search(':') ) ) ) }}"
 
-- name: Find system FQDN (if any)
-  ansible.builtin.set_fact:
-    facts_chosen_fqdn: "{{ ansible_facts['fqdn'] }}"
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        facts_chosen_fqdn: "{{ ansible_facts['fqdn'] }}"
 
-- name: Find system FQDN (if any)
-  ansible.builtin.set_fact:
-    facts_has_fqdn: "{{ not not( (facts_chosen_fqdn) and ( facts_chosen_fqdn | regex_search('^.*\\..*') ) and (facts_chosen_fqdn != 'localhost') and ( not ( facts_chosen_fqdn | regex_search('^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+') ) ) and ( not ( facts_chosen_fqdn | regex_search(':') ) ) ) }}"
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        facts_has_fqdn: "{{ not not( (facts_chosen_fqdn) and ( facts_chosen_fqdn | regex_search('^.*\\..*') ) and (facts_chosen_fqdn != 'localhost') and ( not ( facts_chosen_fqdn | regex_search('^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+') ) ) and ( not ( facts_chosen_fqdn | regex_search(':') ) ) ) }}"
 
-- name: Find system FQDN (if any)
-  ansible.builtin.set_fact:
-    chosen_fqdn: "{{ inv_chosen_fqdn if inv_has_fqdn else facts_chosen_fqdn }}"
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        chosen_fqdn: "{{ inv_chosen_fqdn if inv_has_fqdn else facts_chosen_fqdn }}"
 
-- name: Find system FQDN (if any)
-  ansible.builtin.set_fact:
-    has_fqdn: "{{ inv_has_fqdn or facts_has_fqdn }}"
+    - name: Find system FQDN (if any)
+      ansible.builtin.set_fact:
+        has_fqdn: "{{ inv_has_fqdn or facts_has_fqdn }}"
 
 - name: Store system FQDN in /etc/host_fqdn
   # This way, all scripts always have this easily available
@@ -34,7 +36,7 @@
     mode: u=rw,g=r,o=r
   when: ( has_fqdn )
 
-- name: Print system info
+- name: Print system and FQDN info
   ansible.builtin.debug:
     msg: |
        System '{{ inventory_hostname }}'

@@ -29,11 +29,6 @@
         msg: If https is required, the host needs a valid FQDN
       when: ( css_use_https and not has_fqdn )
 
-#    - name: Check python version
-#      ansible.builtin.fail:
-#        msg: "The system python version {{ ansible_facts['python_version' ]}} is too old. Python 3.11 or newer is required."
-#      when: (ansible_facts['python']['version']['major'] != 3) or (ansible_facts['python']['version']['minor'] < 11)
-
 #    - name: Set an ID for the node in /etc/nickname
 #      ansible.builtin.copy:
 #        content: test
