@@ -1,0 +1,67 @@
+- name: "Install relaxed-json"
+  # rjson is the cli tool of relaxed-json. See https://github.com/phadej/relaxed-json
+  # see also https://github.com/jqlang/jq/wiki/FAQ#processing-not-quite-valid-json
+  # this is used to manipulate CSS config, even when it is not strict json  (mostly trailing comma's)
+  community.general.npm:
+    global: true
+    name: relaxed-json
+    path: /usr/local/
+
+- name: Install Exe provide_certs.sh
+  ansible.builtin.copy:
+    src: "files_css/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=rx
+  loop:
+    - provide_certs.sh
+  when: css_use_https
+
+- name: Install Exe setup_css.sh
+  ansible.builtin.copy:
+    src: "files_css/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=rx
+  loop:
+    - setup_css.sh
+
+- name: Install setup_css.env
+  ansible.builtin.copy:
+    src: "files_css/setup_css.env"
+    dest: "/usr/local/etc/setup_css.env"
+    owner: root
+    group: root
+    # writable by all!
+    mode: u=rw,g=rw,o=rw
+
+- name: Install css Systemd Services
+  ansible.builtin.copy:
+    src: "files_css/css.service"
+    dest: "/etc/systemd/system/css.service"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+- name: Install Template Systemd Service for css
+  ansible.builtin.copy:
+    src: "files_css/css.service.template"
+    dest: "/etc/systemd/system/css.service.template"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+- name: Install auth-cache-webserver Systemd Services
+  ansible.builtin.copy:
+    src: "files_css/auth-cache-webserver.service"
+    dest: "/etc/systemd/system/auth-cache-webserver.service"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  when: start_auth_cache_webserver
+
+- name: Force systemd to reread configs
+  ansible.builtin.systemd:
+    daemon_reload: true

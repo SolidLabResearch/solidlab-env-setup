@@ -1,0 +1,24 @@
+- name: "Install snapd"
+  ansible.builtin.apt:
+    name: snapd
+  when: css_use_https
+
+- name: Install snap core
+  community.general.snap:
+    name: core
+  when: css_use_https
+
+- name: Install certbot
+  community.general.snap:
+    name: certbot
+    classic: true
+  when: css_use_https
+
+- name: Link certbot exe
+  ansible.builtin.file:
+    src: /snap/bin/certbot
+    dest: /usr/local/bin/certbot
+    owner: root
+    group: root
+    state: link
+  when: css_use_https

@@ -1,0 +1,38 @@
+- name: "Add nodejs apt key"
+  ansible.builtin.apt_key:
+    url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+    state: present
+
+- name: "Add nodejs 16.x ppa for apt repo"
+  ansible.builtin.apt_repository:
+    repo: deb https://deb.nodesource.com/node_16.x {{ ansible_distribution_release }} main
+    update_cache: yes
+
+- name: Prefer deb.nodesource.com over official
+  ansible.builtin.copy:
+    content: |
+      Package: nodejs
+      Pin: origin "deb.nodesource.com"
+      Pin-Priority: 1001
+    dest: /etc/apt/preferences.d/prefer-nodesource
+
+- name: "Install nodejs 16"
+  ansible.builtin.apt:
+    name:
+      - nodejs
+    state: present
+
+- name: Fetch nodejs version
+  ansible.builtin.shell: 'node --version'
+  register: nodejs_version
+
+- name: Check nodejs version
+  ansible.builtin.fail:
+    msg: "The nodejs version install {{ nodejs_version }} is not the expected version 16."
+  when: (not (nodejs_version.stdout | regex_search("^16."))) and (not (nodejs_version.stdout | regex_search("^v16.")))
+
+- name: Install "typescript" node.js package.
+  community.general.npm:
+    name: typescript
+    global: true
+    path: /usr/local/

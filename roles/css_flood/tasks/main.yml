@@ -1,0 +1,12 @@
+# install_flood.sh  (on the css server machine this is needed for auth cache, which is then shared by auth-cache-webservice)
+- name: clone css-flood
+  ansible.builtin.git:
+    repo: https://github.com/SolidLabResearch/css-flood.git
+    dest: /usr/local/src/css-flood
+  when: install_server_css_flood
+
+- name: Install css-flood
+  community.general.npm:
+    global: true
+    path: /usr/local/src/css-flood
+  when: install_server_css_flood

@@ -1,0 +1,26 @@
+- name: clone solidlab-perfstat
+  ansible.builtin.git:
+    repo: https://github.com/SolidLabResearch/solidlab-perfstat.git
+    dest: /usr/local/src/solidlab-perfstat
+  when: install_perfstat
+
+- name: Setup venv with solidlab-perfstat
+  ansible.builtin.pip:
+    name:
+      - file:///usr/local/src/solidlab-perfstat/
+    virtualenv_command: '{{ python_exe }} -m venv'
+    virtualenv: /usr/local/venv/solidlab-perfstat/
+  when: install_perfstat
+
+- name: Install perfstat Systemd Services
+  ansible.builtin.copy:
+    src: "files_css/perfstat.service"
+    dest: "/etc/systemd/system/perfstat.service"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  when: install_perfstat
+
+# TODO setup perfstart service and start it
+# exe in /usr/local/venv/solidlab-perfstat/bin/solidlab-perfstat
+# create /etc/perfstat.env ?

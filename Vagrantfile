@@ -82,7 +82,7 @@ Vagrant.configure("2") do |config|
            # within the machine from a port on the host machine. In the example below,
            # accessing "localhost:8080" will access port 80 on the guest machine.
            # NOTE: This will enable public access to the opened port
-           css.vm.network "forwarded_port", guest: 3000, host: 3000+i
+           css.vm.network "forwarded_port", guest: 3000+i, host: 3000+i
 
            # see https://developer.hashicorp.com/vagrant/docs/provisioning/ansible#ansible-parallel-execution
            if i == css_last_index
@@ -94,9 +94,10 @@ Vagrant.configure("2") do |config|
                      ansible.groups = {
                        "css_servers" => (0..css_last_index).map { |j| "css#{j}" },
                      }
-                     ansible.host_vars = (0..css_last_index).to_h { |a| ["css#{a}", {"base_url" => "http://localhost:#{3000 + a}/"}] }
+                     ansible.host_vars = (0..css_last_index).to_h { |a| ["css#{a}", {"base_url" => "http://localhost:#{3000 + a}/", "css_port" => 3000+a}] }
                    end
                end
        end
    end
 end
+

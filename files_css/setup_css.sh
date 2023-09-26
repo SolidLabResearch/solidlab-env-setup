@@ -206,6 +206,12 @@ then
   GLOBAL_BASE_URL="${OVERRIDE_BASE_URL}"
 fi
 
+if [ -n "${OVERRIDE_PORT}" ]
+then
+  USED_CSS_PORT="${OVERRIDE_PORT}"
+  USED_CSS_PORT_SUFFIX=":${OVERRIDE_PORT}"
+fi
+
 echo "Using CSS commit: $GIT_CHECKOUT_ARG"
 
 NICK=$(echo "$GIT_CHECKOUT_ARG" | tr -d -c '[:alnum:]')
@@ -290,19 +296,20 @@ function start_css() {
   _USED_CSS_PORT=$(sed -n -e 's/^ExecStart.*--port \([0-9][0-9]*\).*/\1/p' /etc/systemd/system/css.service)
   echo "USED_CSS_PORT in css.service=${_USED_CSS_PORT}"
 
-  if [ "${_USED_CSS_PORT}" -eq 443 ]
-  then
-    echo 'Making sure traefik is stopped'
-    systemctl stop traefik  || echo 'ignoring traefik stop failure'
-  elif [ "${_USED_CSS_PORT}" -eq 3000 ]
-  then
-    echo 'Making sure traefik is running'
-    systemctl start traefik || true
-    sleep 1
-  else
-    echo "Failed to find CSS port in css.service. Can't know if traefik is needed."
-    exit 1
-  fi
+  # We never use traefik anymore. If this IS needed, re-enable this correctly
+  #if [ "${_USED_CSS_PORT}" -eq 443 ]
+  #then
+  #  echo 'Making sure traefik is stopped'
+  #  systemctl stop traefik  || echo 'ignoring traefik stop failure'
+  #elif [ "${_USED_CSS_PORT}" -eq 3000 ]
+  #then
+  #  echo 'Making sure traefik is running'
+  #  systemctl start traefik || true
+  #  sleep 1
+  #else
+  #  echo "Failed to find CSS port in css.service. Can't know if traefik is needed."
+  #  exit 1
+  #fi
 
   systemctl start css
 
@@ -408,7 +415,7 @@ function update_css_service_file() {
   BASE_URL="${GLOBAL_BASE_URL}"
   if $4
   then
-    BASE_URL="${lOCAL_BASE_URL}"
+    BASE_URL="${LOCAL_BASE_URL}"
   fi
 
 #  cp -v "/etc/systemd/system/css.service.template" /etc/systemd/system/

@@ -1,0 +1,31 @@
+- name: Set timezone to Europe/Brussels
+  community.general.timezone:
+    name: Europe/Brussels
+
+- name: Prevent NetworkManager from being installed
+  ansible.builtin.copy:
+    content: |
+      Package: network-manager
+      Pin: release *
+      Pin-Priority: -1
+    dest: /etc/apt/preferences.d/no-network-manager
+
+- name: Install utils
+  ansible.builtin.apt:
+    pkg: [ 'git', 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'openssl', 'wget', 'gnupg', 'tmux', 'vim', 'build-essential', 'ncdu', 'lsb-release', 'jq']
+    update_cache: yes
+
+- name: Prevent systemd from filling /var/log/syslog
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/journald.conf
+    state: present
+    regexp: '^ForwardToSyslog=no'
+    line: 'ForwardToSyslog=no'
+
+- name: Install xterm-kitty terminfo
+  ansible.builtin.get_url:
+    url: https://github.com/kovidgoyal/kitty/raw/master/terminfo/x/xterm-kitty
+    dest: /usr/share/terminfo/x/xterm-kitty
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r

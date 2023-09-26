@@ -1,0 +1,32 @@
+- name: clone css-populate
+  ansible.builtin.git:
+    repo: https://github.com/SolidLabResearch/css-populate.git
+    dest: /usr/local/src/css-populate
+  when: install_server_css_populate
+
+- name: "Install css-populate"
+  community.general.npm:
+    global: true
+    path: /usr/local/src/css-populate
+  when: install_server_css_populate
+
+- name: 'Copy dummy RDF'
+  ansible.builtin.copy:
+    src: "files_all/infobox-properties_lang=nl__head75000_10MB.nt.gz"
+    dest: "/usr/local/share/infobox-properties_lang=nl__head75000_10MB.nt.gz"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  when: install_server_css_populate
+
+- name: 'Decompress dummy RDF'
+  ansible.builtin.shell: |
+    #!/bin/bash -e
+    
+    gzip --to-stdout -d "infobox-properties_lang=nl__head75000_10MB.nt.gz" > "infobox-properties_lang=nl__head75000_10MB.nt"
+    head -n 7500 "infobox-properties_lang=nl__head75000_10MB.nt" > "infobox-properties_lang=nl__head7500_1MB.nt"
+    head -n 750 "infobox-properties_lang=nl__head75000_10MB.nt" > "infobox-properties_lang=nl__head750_100kB.nt"
+  args:
+    chdir: /usr/local/share/
+    creates: /usr/local/share/infobox-properties_lang=nl__head75000_10MB.nt
+  when: install_server_css_populate
