@@ -65,3 +65,48 @@
 - name: Force systemd to reread configs
   ansible.builtin.systemd:
     daemon_reload: true
+
+# Change setup_css.env according to ansible variables
+
+- name: Set defaults in setup_css.env
+  ansible.builtin.lineinfile:
+    path: /usr/local/etc/setup_css.env
+    regexp: '^GIT_CHECKOUT_ARG='
+    line: GIT_CHECKOUT_ARG={{ css_default_checkout_arg }}
+
+- name: Set defaults in setup_css.env
+  ansible.builtin.lineinfile:
+    path: /usr/local/etc/setup_css.env
+    regexp: '^GENERATE_USERS='
+    line: GENERATE_USERS={{ css_default_generate_users }}
+
+- name: Set defaults in setup_css.env
+  ansible.builtin.lineinfile:
+    path: /usr/local/etc/setup_css.env
+    regexp: '^GENERATE_CONTENT='
+    line: GENERATE_CONTENT={{ css_default_generate_content }}
+
+- name: Set defaults in setup_css.env
+  ansible.builtin.lineinfile:
+    path: /usr/local/etc/setup_css.env
+    regexp: '^SERVER_FACTORY='
+    line: SERVER_FACTORY={{ 'https' if css_use_https else 'http' }}
+
+# Don't do this: variables starting with CSS_ are seen as args by CSS
+#    - name: Set defaults in setup_css.env
+#      ansible.builtin.lineinfile:
+#        path: /usr/local/etc/setup_css.env
+#        regexp: '^CSS_PUBLIC_DNS_NAME='
+#        line: CSS_PUBLIC_DNS_NAME='{{ '' if css_use_https else 'localhost' }}'
+
+- name: Set OVERRIDE_BASE_URL in setup_css.env
+  ansible.builtin.lineinfile:
+    path: /usr/local/etc/setup_css.env
+    regexp: '^OVERRIDE_BASE_URL='
+    line:  OVERRIDE_BASE_URL='{{ base_url }}'
+
+- name: Set OVERRIDE_PORT in setup_css.env
+  ansible.builtin.lineinfile:
+    path: /usr/local/etc/setup_css.env
+    regexp: '^OVERRIDE_PORT='
+    line:  OVERRIDE_PORT='{{ css_port }}'
