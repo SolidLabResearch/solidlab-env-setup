@@ -19,7 +19,7 @@ Prerequisites: install ansible and vagrant
 Just export the wanted numer of VMs as an env variable:
 
 ```shell
-export CSS_COUNT=2
+export SS_COUNT=2
 ```
 
 Optionally, you can hardcode this in the `Vagrantfile`, so it doesn't depend on the environment.
@@ -29,7 +29,7 @@ Optionally, you can hardcode this in the `Vagrantfile`, so it doesn't depend on 
 Set the ansible variables in `ansible-variables.yaml`.
 
 You can mostly leave these as is, but this variable is useful:
-- `css_use_https`: set to `false` for http (recommended with vagrant), `true` for https (doesn't work with vagrant).
+- `ss_use_https`: set to `false` for http (recommended with vagrant), `true` for https (doesn't work with vagrant).
 
 ### step 3: Start the VMs
 
@@ -52,7 +52,7 @@ cat css_url_* > all_urls
 You can also just create a (the predictable) list of CSS server root URLs with something like:
 
 ```shell
-for i in $(seq 0 $(( CSS_COUNT - 1 )) )
+for i in $(seq 0 $(( SS_COUNT - 1 )) )
 do
   echo "http://localhost:$(( $i + 3000 ))/"
 done
@@ -101,7 +101,7 @@ This will create a dir `generated_espec/<espec_name>/` containing the ESpec. (wh
 Set the ansible variables in `ansible-variables.yaml`.
 
 You can mostly leave these as is, but this variable is useful:
-- `css_use_https`: set to `true` for https (recommended), `false` for http.
+- `ss_use_https`: set to `true` for https (recommended), `false` for http.
 
 ### Step 3: Run the ESpec
 
@@ -187,7 +187,7 @@ cat css_url_* | tee all_urls
 Alternatively, you can use jFed CLI2 to get a file with all URLs.
 
 Edit `jfed-cli2-fetch-urls.yaml`. You'll again need to replace the following:
-- `<<GENERATED_DIR>>`: The absolute path of the generated dir with `jfed-cli2-run-espec.yaml` and `experiment-specification.yaml` in it. Or another dir in which you want the output file `css_url` to be written.
+- `<<GENERATED_DIR>>`: The absolute path of the generated dir with `jfed-cli2-run-espec.yaml` and `experiment-specification.yaml` in it. Or another dir in which you want the output file `ss_url` to be written.
 - `<<YOUR_PORTAL_PROJECT>>`: The project you created the experiment in
 - `<<YOUR_EXPERIMENT_NAME>>`: The name of the now running experiment
 - `<<YOUR_LOGIN_PEM>>`: The login file for your portal account.
@@ -199,7 +199,7 @@ cd <jfed_cli_utils_dir>
 java -jar experimenter-cli2.jar -a "${COMMAND_FILE}"
 ```
 
-You'll now find a file `css_url` in the dir with `jfed-cli2-fetch-urls.yaml`, which contains all CSS server URLs.
+You'll now find a file `ss_url` in the dir with `jfed-cli2-fetch-urls.yaml`, which contains all CSS server URLs.
 
 ### Step 5: Renew or Terminate Experiment
 

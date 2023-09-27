@@ -65,15 +65,15 @@ Vagrant.configure("2") do |config|
    #   apt-get install -y apache2
    # SHELL
 
-   css_count = (ENV['CSS_COUNT'] or 2).to_i
-   css_last_index = css_count - 1
-   (0..css_last_index).each do |i|
-       config.vm.define "css#{i}" do |css|
+   ss_count = (ENV['SS_COUNT'] or 2).to_i
+   ss_last_index = ss_count - 1
+   (0..ss_last_index).each do |i|
+       config.vm.define "ss#{i}" do |ss|
            # Every Vagrant development environment requires a box. You can search for
            # boxes at https://vagrantcloud.com/search.
-           css.vm.box = "debian/bookworm64"
+           ss.vm.box = "debian/bookworm64"
 
-           css.vm.provider :libvirt do |libvirt|
+           ss.vm.provider :libvirt do |libvirt|
              libvirt.memory = 2048
              libvirt.cpus = 2
            end
@@ -82,19 +82,19 @@ Vagrant.configure("2") do |config|
            # within the machine from a port on the host machine. In the example below,
            # accessing "localhost:8080" will access port 80 on the guest machine.
            # NOTE: This will enable public access to the opened port
-           css.vm.network "forwarded_port", guest: 3000+i, host: 3000+i
+           ss.vm.network "forwarded_port", guest: 3000+i, host: 3000+i
 
            # see https://developer.hashicorp.com/vagrant/docs/provisioning/ansible#ansible-parallel-execution
-           if i == css_last_index
-               css.vm.provision :ansible do |ansible|
+           if i == ss_last_index
+               ss.vm.provision :ansible do |ansible|
                      # Disable default limit to connect to all the machines
                      ansible.limit = "all"
                      ansible.verbose = "v"
                      ansible.playbook = "playbook.yaml"
                      ansible.groups = {
-                       "css_servers" => (0..css_last_index).map { |j| "css#{j}" },
+                       "ss_servers" => (0..ss_last_index).map { |j| "ss#{j}" },
                      }
-                     ansible.host_vars = (0..css_last_index).to_h { |a| ["css#{a}", {"base_url" => "http://localhost:#{3000 + a}/", "css_port" => 3000+a}] }
+                     ansible.host_vars = (0..ss_last_index).to_h { |a| ["ss#{a}", {"base_url" => "http://localhost:#{3000 + a}/", "ss_port" => 3000+a}] }
                    end
                end
        end

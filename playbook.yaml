@@ -1,5 +1,5 @@
 ---
-- hosts: css_servers
+- hosts: ss_servers
   become: yes
   vars_files:
     - ansible-variables.yaml
@@ -12,9 +12,14 @@
     - nodejs
     - css_populate
     - css_flood
-    - certbot
-    - redis
-    - setup_css_script
+    - role: docker
+      when: ss_type == 'kss'
+    - role: certbot
+      when: ss_type == 'css'
+    - role: redis
+      when: ss_type == 'css'
+    - role: setup_css_script
+      when: ss_type == 'css'
   tasks:
 #    - name: Print all available facts
 #      ansible.builtin.debug:
@@ -27,7 +32,7 @@
     - name: Check if https is possible
       ansible.builtin.fail:
         msg: If https is required, the host needs a valid FQDN
-      when: ( css_use_https and not has_fqdn )
+      when: ( ss_use_https and not has_fqdn )
 
 #    - name: Set an ID for the node in /etc/nickname
 #      ansible.builtin.copy:
@@ -38,15 +43,15 @@
 
     - name: Start CSS
       shell: setup_css.sh
-      when: start_css
+      when: ( start_ss and ss_type == 'css' )
       timeout: "{{ 20 * 60 }}"
       environment:
-        CSS_PUBLIC_DNS_NAME: "{{ '' if css_use_https else 'localhost' }}"
-    # setup_css.sh writes to /usr/local/share/css_url
+        CSS_PUBLIC_DNS_NAME: "{{ '' if ss_use_https else 'localhost' }}"
+    # setup_css.sh writes to /usr/local/share/ss_url
 
     - name: Collect server URLs
       ansible.builtin.fetch:
-        src: /usr/local/share/css_url
-        dest: css_url_{{ inventory_hostname }}
+        src: /usr/local/share/ss_url
+        dest: ss_url_{{ inventory_hostname }}
         flat: yes
-      when: start_css
+      when: ( start_ss and ss_type == 'css' )

@@ -1310,6 +1310,6 @@ echo "* $SERVER_UNDER_TEST is configured and running for your Experiment *"
 echo "* at ${GLOBAL_BASE_URL} "
 echo '******************************************************'
 
-echo "${GLOBAL_BASE_URL}" > "${share_dir}css_url"
+echo "${GLOBAL_BASE_URL}" > "${share_dir}ss_url"
 
 exit 0

@@ -2,7 +2,7 @@
 action: SSHFETCH
 localTargetDir: <<GENERATED_DIR>>
 merge: true
-remoteFile: /usr/local/share/css_url
+remoteFile: /usr/local/share/ss_url
 slice:
   failIfNoProject: true
   failOnExistingSlice: false

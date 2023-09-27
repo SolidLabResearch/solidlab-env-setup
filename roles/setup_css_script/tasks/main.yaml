@@ -16,7 +16,7 @@
     mode: u=rwx,g=rx,o=rx
   loop:
     - provide_certs.sh
-  when: css_use_https
+  when: ss_use_https
 
 - name: Install Exe setup_css.sh
   ansible.builtin.copy:
@@ -92,14 +92,14 @@
         ansible.builtin.lineinfile:
           path: /usr/local/etc/setup_css.env
           regexp: '^SERVER_FACTORY='
-          line: SERVER_FACTORY={{ 'https' if css_use_https else 'http' }}
+          line: SERVER_FACTORY={{ 'https' if ss_use_https else 'http' }}
 
       # Don't do this: variables starting with CSS_ are seen as args by CSS
       #    - name: Set CSS_PUBLIC_DNS_NAME
       #      ansible.builtin.lineinfile:
       #        path: /usr/local/etc/setup_css.env
       #        regexp: '^CSS_PUBLIC_DNS_NAME='
-      #        line: CSS_PUBLIC_DNS_NAME='{{ '' if css_use_https else 'localhost' }}'
+      #        line: CSS_PUBLIC_DNS_NAME='{{ '' if ss_use_https else 'localhost' }}'
 
 - name: Set OVERRIDE_BASE_URL in setup_css.env
   ansible.builtin.lineinfile:

@@ -1,0 +1,43 @@
+- name: "Add docker apt key"
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    keyring: /etc/apt/keyrings/docker.gpg
+    state: present
+
+- name: Get DEB architecture
+  shell: dpkg --print-architecture
+  register: deb_architecture
+  changed_when: False
+
+- name: "Add docker apt repo"
+  ansible.builtin.apt_repository:
+    repo: "deb [arch={{ deb_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/{% if ansible_distribution == 'Debian' %}debian{% else %}ubuntu{% endif %} {{ ansible_distribution_release }} stable"
+    update_cache: yes
+
+- name: Configure docker
+  ansible.builtin.copy:
+    content: |
+      {
+         "registry-mirrors": [ {% if 'docker-mirror.labnet' is ansible.utils.resolvable %}"http://docker-mirror.labnet"{% else %}"https://mirror.gcr.io"{% endif %} ],
+         "log-driver": "local",
+         "log-opts": {
+            "max-size": "100m",
+            "max-file": "2",
+            "compress":"false"
+         }
+      }
+    dest: /etc/docker/daemon.json
+
+- name: "Install docker"
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+
+- name: Fetch docker version
+  ansible.builtin.shell: 'docker --version'
+  register: docker_version
