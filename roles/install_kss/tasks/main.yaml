@@ -1,0 +1,16 @@
+- name: clone css-populate
+  ansible.builtin.git:
+    repo: 'git@gitlab.ilabt.imec.be:wkerckho/kvasir.git'
+    dest: /usr/local/src/kvasir
+
+- name: Start KSS
+  shell: |
+    cd /usr/local/src/kvasir
+    docker compose up -d
+    ./gradlew :services:monolith:quarkusDev
+    echo '{{ OVERRIDE_BASE_URL }}/ldp/alice/' > /usr/local/share/ss_url
+  when: start_ss
+  timeout: "{{ 20 * 60 }}"
+  environment:
+    OVERRIDE_BASE_URL: '{{ base_url }}'
+    OVERRIDE_PORT: '{{ ss_port }}'

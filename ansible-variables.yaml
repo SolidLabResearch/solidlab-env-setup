@@ -1,6 +1,6 @@
 ---
-#ss_type: kss
-ss_type: css
+ss_type: kss
+#ss_type: css
 ss_use_https: false
 start_ss: true
 css_default_checkout_arg: main

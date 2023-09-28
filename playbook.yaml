@@ -54,4 +54,4 @@
         src: /usr/local/share/ss_url
         dest: ss_url_{{ inventory_hostname }}
         flat: yes
-      when: ( start_ss and ss_type == 'css' )
+      when: start_ss

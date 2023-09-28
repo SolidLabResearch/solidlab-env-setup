@@ -111,4 +111,4 @@
   ansible.builtin.lineinfile:
     path: /usr/local/etc/setup_css.env
     regexp: '^OVERRIDE_PORT='
-    line:  OVERRIDE_PORT='{{ css_port }}'
+    line:  OVERRIDE_PORT='{{ ss_port }}'

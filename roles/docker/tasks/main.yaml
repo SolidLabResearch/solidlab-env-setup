@@ -14,6 +14,14 @@
     repo: "deb [arch={{ deb_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/{% if ansible_distribution == 'Debian' %}debian{% else %}ubuntu{% endif %} {{ ansible_distribution_release }} stable"
     update_cache: yes
 
+- name: Ensure /etc/docker exists
+  ansible.builtin.file:
+    path: /etc/docker
+    owner: root
+    group: root
+    state: directory
+    mode: u=rwx,g=rx,o=rx
+
 - name: Configure docker
   ansible.builtin.copy:
     content: |
