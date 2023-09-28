@@ -3,14 +3,38 @@
     repo: 'git@gitlab.ilabt.imec.be:wkerckho/kvasir.git'
     dest: /usr/local/src/kvasir
 
-- name: Start KSS
-  shell: |
+# QUARKUS_* env vars:
+#     see https://quarkus.io/guides/all-config#quarkus-vertx-http_quarkus-vertx-http-eclipse-vert.x-http
+
+- name: Start KSS with SSL
+  shell: |    
+    /usr/local/bin/provide_certs.sh
+    etc_dir="/usr/local/etc"
+    HTTPS_CERT_FILE="${etc_dir}/css/server_cert.pem"
+    HTTPS_KEY_FILE="${etc_dir}/css/server_key.pem"
+    
+    QUARKUS_HTTP_SSL_CERTIFICATE_FILES="${HTTPS_CERT_FILE}"
+    QUARKUS_HTTP_SSL_CERTIFICATE_KEY_FILES="${HTTPS_KEY_FILE}"
+    QUARKUS_HTTP_PORT="8080"
+    QUARKUS_HTTP_SSL_PORT="443"
+    
     cd /usr/local/src/kvasir
     docker compose up -d
     ./gradlew :services:monolith:quarkusDev
     echo '{{ OVERRIDE_BASE_URL }}/ldp/alice/' > /usr/local/share/ss_url
-  when: start_ss
+  when: (start_ss and ss_use_https)
   timeout: "{{ 20 * 60 }}"
-  environment:
-    OVERRIDE_BASE_URL: '{{ base_url }}'
-    OVERRIDE_PORT: '{{ ss_port }}'
+#  environment:
+#    OVERRIDE_BASE_URL: '{{ base_url }}'
+#    OVERRIDE_PORT: '{{ ss_port }}'
+
+- name: Start KSS without SSL
+  shell: |    
+    QUARKUS_HTTP_PORT="'{{ ss_port }}"
+    
+    cd /usr/local/src/kvasir
+    docker compose up -d
+    ./gradlew :services:monolith:quarkusDev
+    echo '{{ OVERRIDE_BASE_URL }}/ldp/alice/' > /usr/local/share/ss_url
+  when: (start_ss and ss_use_https)
+  timeout: "{{ 20 * 60 }}"
