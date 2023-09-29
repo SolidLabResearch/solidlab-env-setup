@@ -87,6 +87,7 @@ Vagrant.configure("2") do |config|
            # see https://developer.hashicorp.com/vagrant/docs/provisioning/ansible#ansible-parallel-execution
            if i == ss_last_index
                ss.vm.provision :ansible do |ansible|
+                     ansible.raw_ssh_args = ['-o ForwardAgent=yes']
                      # Disable default limit to connect to all the machines
                      ansible.limit = "all"
                      ansible.verbose = "v"

@@ -20,6 +20,8 @@
       when: ss_type == 'css'
     - role: setup_css_script
       when: ss_type == 'css'
+    - role: install_kss
+      when: ss_type == 'kss'
   tasks:
 #    - name: Print all available facts
 #      ansible.builtin.debug:

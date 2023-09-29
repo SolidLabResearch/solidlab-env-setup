@@ -29,3 +29,9 @@
     owner: root
     group: root
     mode: u=rw,g=r,o=r
+
+- name: Enable SSH forwarding for sudo
+  lineinfile:
+    dest: /etc/sudoers
+    insertafter: '^#?\s*Defaults\s+env_keep\b'
+    line: 'Defaults    env_keep += "SSH_AUTH_SOCK"'

@@ -1,4 +1,4 @@
-- name: clone css-populate
+- name: clone kvasir
   ansible.builtin.git:
     repo: 'git@gitlab.ilabt.imec.be:wkerckho/kvasir.git'
     dest: /usr/local/src/kvasir
