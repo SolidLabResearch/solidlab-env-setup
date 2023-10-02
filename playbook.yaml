@@ -4,24 +4,37 @@
   vars_files:
     - ansible-variables.yaml
   roles:
-    - common
-    - fqdn
-    - github_known_hosts
-    - python
-    - perfstat
-    - nodejs
-    - css_populate
-    - css_flood
+    - role: common
+      tags: setup
+    - role: fqdn
+      tags: setup
+    - role: github_known_hosts
+      tags: setup
+    - role: python
+      tags: setup
+    - role: perfstat
+      tags: setup
+    - role: nodejs
+      tags: setup
+    - role: css_populate
+      tags: setup
+    - role: css_flood
+      tags: setup
     - role: docker
       when: ss_type == 'kss'
+      tags: setup
     - role: certbot
       when: ss_type == 'css'
+      tags: setup
     - role: redis
       when: ss_type == 'css'
+      tags: setup
     - role: setup_css_script
       when: ss_type == 'css'
+      tags: css
     - role: install_kss
       when: ss_type == 'kss'
+      tags: kss
   tasks:
 #    - name: Print all available facts
 #      ansible.builtin.debug:
@@ -35,6 +48,7 @@
       ansible.builtin.fail:
         msg: If https is required, the host needs a valid FQDN
       when: ( ss_use_https and not has_fqdn )
+      tags: setup
 
 #    - name: Set an ID for the node in /etc/nickname
 #      ansible.builtin.copy:
@@ -49,6 +63,7 @@
       timeout: "{{ 20 * 60 }}"
       environment:
         CSS_PUBLIC_DNS_NAME: "{{ '' if ss_use_https else 'localhost' }}"
+      tags: css
     # setup_css.sh writes to /usr/local/share/ss_url
 
     - name: Collect server URLs
@@ -57,3 +72,4 @@
         dest: ss_url_{{ inventory_hostname }}
         flat: yes
       when: start_ss
+      tags: post

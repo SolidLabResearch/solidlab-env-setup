@@ -2,6 +2,9 @@
   ansible.builtin.git:
     repo: 'git@gitlab.ilabt.imec.be:wkerckho/kvasir.git'
     dest: /usr/local/src/kvasir
+    # IdentitiesOnly=no makes sure ssh-agent is used
+    # ControlMaster=auto ControlPersist=60s tries to re-use ssh connections
+    ssh_opts: '-o IdentitiesOnly=no -o ControlMaster=auto -o ControlPersist=60s'
 
 # QUARKUS_* env vars:
 #     see https://quarkus.io/guides/all-config#quarkus-vertx-http_quarkus-vertx-http-eclipse-vert.x-http
