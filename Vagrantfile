@@ -65,7 +65,7 @@ Vagrant.configure("2") do |config|
    #   apt-get install -y apache2
    # SHELL
 
-   ss_count = (ENV['SS_COUNT'] or 2).to_i
+   ss_count = (ENV['SS_COUNT'] or 1).to_i
    ss_last_index = ss_count - 1
    (0..ss_last_index).each do |i|
        config.vm.define "ss#{i}" do |ss|
@@ -74,7 +74,8 @@ Vagrant.configure("2") do |config|
            ss.vm.box = "debian/bookworm64"
 
            ss.vm.provider :libvirt do |libvirt|
-             libvirt.memory = 2048
+             libvirt.memory = 1024 * 4
+#              libvirt.memory = 2048
              libvirt.cpus = 2
            end
 

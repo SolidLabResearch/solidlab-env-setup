@@ -1,9 +1,9 @@
 {
     "espec_name": "duo",
     "server_count": 2,
-    "client_count": 0,
-    "component_manager_urn": "urn:publicid:IDN+wall1.ilabt.iminds.be+authority+cm",
+    "client_count": 1,
+    "component_manager_urn": "urn:publicid:IDN+wall2.ilabt.iminds.be+authority+cm",
     "disk_image_name": "urn:publicid:IDN+wall2.ilabt.iminds.be+image+emulab-ops:UBUNTU20-64-STD",
-    "server_hardware_type_name": "none",
-    "client_hardware_type_name": "none"
+    "server_hardware_type_name": "pcgen04lsi",
+    "client_hardware_type_name": "pcgen04lsi"
 }

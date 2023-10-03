@@ -1,8 +1,10 @@
 ---
-ss_type: kss
-#ss_type: css
-ss_use_https: false
-start_ss: true
+install_kss: true
+install_css: false
+#ss_use_https: false
+ss_use_https: true
+start_css: false
+start_kss: false
 css_default_checkout_arg: main
 install_perfstat: false
 install_server_css_populate: false

@@ -7,17 +7,6 @@
     name: relaxed-json
     path: /usr/local/
 
-- name: Install Exe provide_certs.sh
-  ansible.builtin.copy:
-    src: "files_css/{{ item }}"
-    dest: "/usr/local/bin/{{ item }}"
-    owner: root
-    group: root
-    mode: u=rwx,g=rx,o=rx
-  loop:
-    - provide_certs.sh
-  when: ss_use_https
-
 - name: Install Exe setup_css.sh
   ansible.builtin.copy:
     src: "files_css/{{ item }}"
@@ -53,15 +42,6 @@
     group: root
     mode: u=rw,g=r,o=r
 
-- name: Install auth-cache-webserver Systemd Services
-  ansible.builtin.copy:
-    src: "files_css/auth-cache-webserver.service"
-    dest: "/etc/systemd/system/auth-cache-webserver.service"
-    owner: root
-    group: root
-    mode: u=rw,g=r,o=r
-  when: start_auth_cache_webserver
-
 - name: Force systemd to reread configs
   ansible.builtin.systemd:
     daemon_reload: true
@@ -95,11 +75,11 @@
           line: SERVER_FACTORY={{ 'https' if ss_use_https else 'http' }}
 
       # Don't do this: variables starting with CSS_ are seen as args by CSS
-      #    - name: Set CSS_PUBLIC_DNS_NAME
+      #    - name: Set SS_PUBLIC_DNS_NAME
       #      ansible.builtin.lineinfile:
       #        path: /usr/local/etc/setup_css.env
-      #        regexp: '^CSS_PUBLIC_DNS_NAME='
-      #        line: CSS_PUBLIC_DNS_NAME='{{ '' if ss_use_https else 'localhost' }}'
+      #        regexp: '^SS_PUBLIC_DNS_NAME='
+      #        line: SS_PUBLIC_DNS_NAME='{{ '' if ss_use_https else 'localhost' }}'
 
 - name: Set OVERRIDE_BASE_URL in setup_css.env
   ansible.builtin.lineinfile:

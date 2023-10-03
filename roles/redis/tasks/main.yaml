@@ -1,14 +1,22 @@
-- name: "Add redis apt key"
+- name: "Add Redis apt key"
   ansible.builtin.apt_key:
     url: https://packages.redis.io/gpg
     state: present
 
-- name: "Add redis ppa"
+- name: "Add Redis ppa"
   ansible.builtin.apt_repository:
     repo: deb https://packages.redis.io/deb {{ ansible_distribution_release }} main
     update_cache: yes
 
-- name: "Install redis"
+- name: "Set vm.overcommit_memory for Redis"
+  ansible.posix.sysctl:
+    name: vm.overcommit_memory
+    value: '1'
+    state: present
+
+# Note: install will fail if port 6379 is in use
+# see /var/log/redis/redis-server.log
+- name: "Install Redis"
   ansible.builtin.apt:
     update_cache: yes
     name: redis

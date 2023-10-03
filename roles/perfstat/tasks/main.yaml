@@ -14,7 +14,7 @@
 
 - name: Install perfstat Systemd Services
   ansible.builtin.copy:
-    src: "files_css/perfstat.service"
+    src: "files_cs/perfstat.service"
     dest: "/etc/systemd/system/perfstat.service"
     owner: root
     group: root

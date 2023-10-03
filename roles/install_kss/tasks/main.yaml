@@ -9,35 +9,80 @@
 # QUARKUS_* env vars:
 #     see https://quarkus.io/guides/all-config#quarkus-vertx-http_quarkus-vertx-http-eclipse-vert.x-http
 
-- name: Start KSS with SSL
-  shell: |    
-    /usr/local/bin/provide_certs.sh
-    etc_dir="/usr/local/etc"
-    HTTPS_CERT_FILE="${etc_dir}/css/server_cert.pem"
-    HTTPS_KEY_FILE="${etc_dir}/css/server_key.pem"
-    
-    QUARKUS_HTTP_SSL_CERTIFICATE_FILES="${HTTPS_CERT_FILE}"
-    QUARKUS_HTTP_SSL_CERTIFICATE_KEY_FILES="${HTTPS_KEY_FILE}"
-    QUARKUS_HTTP_PORT="8080"
-    QUARKUS_HTTP_SSL_PORT="443"
-    
-    cd /usr/local/src/kvasir
-    docker compose up -d
-    ./gradlew :services:monolith:quarkusDev
-    echo '{{ OVERRIDE_BASE_URL }}/ldp/alice/' > /usr/local/share/ss_url
-  when: (start_ss and ss_use_https)
-  timeout: "{{ 20 * 60 }}"
-#  environment:
-#    OVERRIDE_BASE_URL: '{{ base_url }}'
-#    OVERRIDE_PORT: '{{ ss_port }}'
+- name: Install Exe setup_kss.sh
+  ansible.builtin.copy:
+    src: "files_kss/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=rx
+  loop:
+    - setup_kss.sh
 
-- name: Start KSS without SSL
-  shell: |    
-    QUARKUS_HTTP_PORT="'{{ ss_port }}"
-    
-    cd /usr/local/src/kvasir
-    docker compose up -d
-    ./gradlew :services:monolith:quarkusDev
-    echo '{{ OVERRIDE_BASE_URL }}/ldp/alice/' > /usr/local/share/ss_url
-  when: (start_ss and ss_use_https)
-  timeout: "{{ 20 * 60 }}"
+- name: Install setup_kss.env
+  ansible.builtin.copy:
+    src: "files_kss/setup_kss.env"
+    dest: "/usr/local/etc/setup_kss.env"
+    owner: root
+    group: root
+    # writable by all!
+    mode: u=rw,g=rw,o=rw
+
+- name: Install kss_service.env
+  ansible.builtin.copy:
+    src: "files_kss/kss_service.env"
+    dest: "/usr/local/etc/kss_service.env"
+    owner: root
+    group: root
+    # writable by all!
+    mode: u=rw,g=rw,o=rw
+
+- name: Install kss Systemd Services
+  ansible.builtin.copy:
+    src: "files_kss/kss.service"
+    dest: "/etc/systemd/system/kss.service"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+#- name: Install Template Systemd Service for css
+#  ansible.builtin.copy:
+#    src: "files_css/kss.service.template"
+#    dest: "/etc/systemd/system/kss.service.template"
+#    owner: root
+#    group: root
+#    mode: u=rw,g=r,o=r
+
+#- name: Start KSS with SSL
+#  shell: |
+#    /usr/local/bin/provide_certs.sh
+#    etc_dir="/usr/local/etc"
+#    HTTPS_CERT_FILE="${etc_dir}/css/server_cert.pem"
+#    HTTPS_KEY_FILE="${etc_dir}/css/server_key.pem"
+#
+#    export QUARKUS_HTTP_SSL_CERTIFICATE_FILES="${HTTPS_CERT_FILE}"
+#    export QUARKUS_HTTP_SSL_CERTIFICATE_KEY_FILES="${HTTPS_KEY_FILE}"
+#    export QUARKUS_HTTP_PORT="8080"
+#    export QUARKUS_HTTP_SSL_PORT="443"
+#
+#    cd /usr/local/src/kvasir
+#    docker compose up -d
+#    ./gradlew :services:monolith:quarkusDev
+#    base_url='https://{{ chosen_fqdn }}'
+#    echo "${base_url}/ldp/alice/" > /usr/local/share/ss_url
+#  when: (start_ss and ss_use_https)
+#  timeout: "{{ 20 * 60 }}"
+##  environment:
+##    OVERRIDE_BASE_URL: '{{ base_url }}'
+##    OVERRIDE_PORT: '{{ ss_port }}'
+#
+#- name: Start KSS without SSL
+#  shell: |
+#    QUARKUS_HTTP_PORT="'{{ ss_port }}"
+#
+#    cd /usr/local/src/kvasir
+#    docker compose up -d
+#    ./gradlew :services:monolith:quarkusDev
+#    echo '{{ base_url }}/ldp/alice/' > /usr/local/share/ss_url
+#  when: (start_ss and not ss_use_https)
+#  timeout: "{{ 20 * 60 }}"

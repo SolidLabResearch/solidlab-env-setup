@@ -5,7 +5,7 @@
        xsi:schemaLocation="http://www.geni.net/resources/rspec/3 http://www.geni.net/resources/rspec/3/request.xsd ">
 
 {% for i in range( cookiecutter.server_count |int ) %}
-  <node client_id="css{{ i }}" exclusive="true" component_manager_id="{{cookiecutter.component_manager_urn}}">
+  <node client_id="ss{{ i }}" exclusive="true" component_manager_id="{{cookiecutter.component_manager_urn}}">
     <sliver_type name="raw-pc">
       <disk_image name="{{cookiecutter.disk_image_name}}"/>
     </sliver_type>
@@ -13,7 +13,7 @@
     <hardware_type name="{{cookiecutter.server_hardware_type_name}}"/>
 {% endif %}
     <location xmlns="http://jfed.iminds.be/rspec/ext/jfed/1" x="{{ (i + 1) * 100 }}.0" y="50.0"/>
-    <interface client_id="css{{ i }}:if0">
+    <interface client_id="ss{{ i }}:if0">
       <ip address="192.168.0.{{ i + 1 }}" netmask="255.255.255.0" type="ipv4"/>
     </interface>
     <ansible_group xmlns="http://jfed.iminds.be/rspec/ext/jfed/1" name="ss_servers"/>
@@ -41,7 +41,7 @@
   <link client_id="link0">
     <component_manager name="{{cookiecutter.component_manager_urn}}"/>
 {% for i in range( cookiecutter.server_count |int ) %}
-    <interface_ref client_id="css{{ i }}:if0"/>
+    <interface_ref client_id="ss{{ i }}:if0"/>
 {% endfor %}
 {% for i in range( cookiecutter.client_count |int ) %}
     <interface_ref client_id="client{{ i }}:if0"/>

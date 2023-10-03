@@ -17,6 +17,9 @@ exe_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd "${exe_dir}"
 # exe_dir should be /usr/local/bin/
 
+# import functions from generate_content.sh
+source "${exe_dir}/generate_content.sh"
+
 # install_prefix is /, /usr/ or /usr/local/
 # will be auto-detected by looking at exe_dir
 
@@ -72,9 +75,9 @@ if [ -z "$CSS_PUBLIC_DNS_NAME" ]
 then
   if [ "$SERVER_FACTORY" == "https" ]
   then
-    CSS_PUBLIC_DNS_NAME="$(cat /etc/host_fqdn)"
+    SS_PUBLIC_DNS_NAME="$(cat /etc/host_fqdn)"
   else
-    CSS_PUBLIC_DNS_NAME="localhost"
+    SS_PUBLIC_DNS_NAME="localhost"
   fi
 fi
 
@@ -95,9 +98,11 @@ systemctl daemon-reload
 
 # Start by stopping any old servers
 echo "Stopping CSS, traefik, auth-cache-webserver and nginx (if running)."
-systemctl stop css traefik nginx auth-cache-webserver  || echo 'ignoring stop failure'
+systemctl stop css traefik nginx auth-cache-webserver kss || echo 'ignoring stop failure'
 # If the above fails, there's typically an error in a systemd unit .service file
 # Or the services simply don't exist on this specific setup
+
+systemctl start redis-server || echo 'ignoring start redis failed'
 
 if [ -z "$GIT_REPO_URL" ]
 then
@@ -199,8 +204,8 @@ then
   "${exe_dir}/provide_certs.sh"
 fi
 
-LOCAL_BASE_URL="${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}:3000/"
-GLOBAL_BASE_URL="${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}/"
+LOCAL_BASE_URL="${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:3000/"
+GLOBAL_BASE_URL="${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}/"
 if [ -n "${OVERRIDE_BASE_URL}" ]
 then
   GLOBAL_BASE_URL="${OVERRIDE_BASE_URL}"
@@ -235,50 +240,8 @@ fi
 
 echo "    NICK=$NICK"
 
-if [ "${GENERATE_CONTENT,,}" == "true" ]
-then
-  # Make a unique name ("CONTENT_ID") based on requested server data content
-  # Variables:
-  #    ${CONTENT_USER_COUNT}
-  #    ${CONTENT_FIXED_SIZE_FILECOUNT}
-  #    ${CONTENT_FILES_FOR_GET}
-  #    ${CONTENT_FILES_RDF}
-  #    ${CONTENT_FILES_RDF_SIZE} / ${CONTENT_FILES_RDF_SIZE_NICK}
-  #    ${AUTHORIZATION}  # content dir differs for authentication methods
-  #    ${GENERATED_FILES_NEST_DEPTH}
-  CONTENT_ID="cnt-${CONTENT_USER_COUNT}u-${CONTENT_FIXED_SIZE_FILECOUNT}fs-${AUTHORIZATION}"
-  if [ "${CONTENT_FILES_FOR_GET,,}" == 'true' ]
-  then
-    CONTENT_ID="${CONTENT_ID}-get"
-  fi
-  if [ "${GENERATED_FILES_NEST_DEPTH}" != '0' ]
-  then
-    CONTENT_ID="${CONTENT_ID}-d${GENERATED_FILES_NEST_DEPTH}"
-  fi
-  if [ "${GENERATED_FILES_ADD_AC_PER_RESOURCE}" == 'false' ]
-  then
-    CONTENT_ID="${CONTENT_ID}-noresac"
-  fi
-  if [ "${GENERATED_FILES_ADD_AC_PER_DIR}" == 'false' ]
-  then
-    CONTENT_ID="${CONTENT_ID}-nodirac"
-  fi
-  if [ "${CONTENT_FILES_RDF,,}" == 'true' ]
-  then
-    CONTENT_ID="${CONTENT_ID}-rdf${CONTENT_FILES_RDF_SIZE_NICK}"
-  fi
-  echo "    CONTENT_ID=${CONTENT_ID}"
-else
-  if [ "${GENERATE_USERS,,}" == "true" ]
-  then
-    CONTENT_ID="cnt-${CONTENT_USER_COUNT}u-empty"
-  else
-    CONTENT_ID="cnt-empty"
-  fi
+make_content_id  # sets CONTENT_ID see generate_content.sh
 
-  # Random content ID: new empty content dir every time
-#  CONTENT_ID="empty-$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 10)"
-fi
 ##################################################################################################################
 ##################################################################################################################
 
@@ -344,14 +307,14 @@ function start_css() {
     _CSS_CERT_READY=false
     for wait in $(seq 1 120)  # wait max 2 minutes, then just give up
     do
-      if echo -n | openssl s_client -connect "${CSS_PUBLIC_DNS_NAME}:443" -verify_return_error > /dev/null 2>&1;
+      if echo -n | openssl s_client -connect "${SS_PUBLIC_DNS_NAME}:443" -verify_return_error > /dev/null 2>&1;
       then
-        echo "      OK: Got a valid certificate from ${CSS_PUBLIC_DNS_NAME}:443"
+        echo "      OK: Got a valid certificate from ${SS_PUBLIC_DNS_NAME}:443"
         _CSS_CERT_READY=true
         sleep 0.2
         break
       else
-        echo "      Not (yet) OK: Failed to get valid cert on ${CSS_PUBLIC_DNS_NAME}:443"
+        echo "      Not (yet) OK: Failed to get valid cert on ${SS_PUBLIC_DNS_NAME}:443"
       fi
       sleep 1  #wait until cert is ready
       echo "   Waiting for a valid certificate ($wait)..."
@@ -369,15 +332,15 @@ function start_css() {
   # test SSL on 3000: openssl s_client -connect localhost:3000 -servername $(cat /etc/host_fqdn) -msg
 
   echo
-  echo -n "   Test CSS at ${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/ ..."
-#  echo -e "GET ${CSS_PUBLIC_DNS_NAME}/ HTTP/1.1\nHost: selftest\nConnection: close\n\n" | tee /dev/stdout | openssl s_client -connect "${CSS_PUBLIC_DNS_NAME}:443" -quiet
-  _CSS_TEST_OUTPUT="$(curl -s -I "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/" || true)"
+  echo -n "   Test CSS at ${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/ ..."
+#  echo -e "GET ${SS_PUBLIC_DNS_NAME}/ HTTP/1.1\nHost: selftest\nConnection: close\n\n" | tee /dev/stdout | openssl s_client -connect "${SS_PUBLIC_DNS_NAME}:443" -quiet
+  _CSS_TEST_OUTPUT="$(curl -s -I "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/" || true)"
 
   if ! echo "${_CSS_TEST_OUTPUT}" | grep -i -q 'x-powered-by: Community Solid Server'
   then
     echo " FAILED"
     echo 'ERROR: CSS Test failed.'
-    echo "       Ran command: curl -s -I ${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/"
+    echo "       Ran command: curl -s -I ${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/"
     echo "       Hint: check CSS service log for more info"
     echo '       Output:'
     echo "${_CSS_TEST_OUTPUT}"
@@ -419,7 +382,7 @@ function update_css_service_file() {
   fi
 
 #  cp -v "/etc/systemd/system/css.service.template" /etc/systemd/system/
-  sed -e "s/<<CSS_DNS_NAME>>/${CSS_PUBLIC_DNS_NAME}/g" \
+  sed -e "s/<<CSS_DNS_NAME>>/${SS_PUBLIC_DNS_NAME}/g" \
       -e "s#<<CSS_BASE_URL>>#${BASE_URL}#g" \
       -e "s#<<ENV_FILE>>#${env_file}#g" \
       -e "s#<<CSS_EXE>>#${EXE}#g" \
@@ -730,147 +693,38 @@ function install_css() {
 ##################################################################################################################
 
 function generate_css_data() {
-  # Generate data into a target CSS server data dir
-
-  # Parameters:
-  #   $1 = target CSS data dir
-  local _CSS_DATA_DIR="$1"
-  local _START_CSS=true
-  if [ "${STORAGE_BACKEND}" == 'memory' ]
-  then
-    _START_CSS=false
-  fi
-  #
-  # Input env vars:
-  #   $CSS_PUBLIC_DNS_NAME
-  #   $env_file
-  #   $SERVER_NEUTRAL_CONFIG_FILE
-  #   #for content generation config:
-  #   ${CONTENT_USER_COUNT}
-  #   ${CONTENT_FIXED_SIZE_FILECOUNT}
-  #   ${CONTENT_FILES_FOR_GET}
-  #   ${CONTENT_FILES_RDF}
-  # Input env vars used by update_css_service_file:
-  #   $CSS_PUBLIC_DNS_NAME
-  #   $env_file
-  #   $EXE
-  #   $USED_CSS_PORT
-
-  echo "generating data for CSS commit $NICK"
-  if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
-  then
-    rm -rf "${_CSS_DATA_DIR}"
-    mkdir "${_CSS_DATA_DIR}"
-  fi
-
   if [ "${GENERATE_CONTENT,,}" != "true" ] && [ "${GENERATE_USERS,,}" != "true" ]
   then
     # Nothing to do
     return 0;
   fi
 
-  if "${_START_CSS}"
+  if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
+  then
+    rm -rf "${_CSS_DATA_DIR}"
+    mkdir "${_CSS_DATA_DIR}"
+  fi
+
+  local _START_SS=true
+  if [ "${STORAGE_BACKEND}" == 'memory' ]
+  then
+    _START_SS=false
+  fi
+  if "${_START_SS}"
   then
     update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000 true
     start_css
   fi
 
-  if [ -z "${CONTENT_USER_COUNT}" ]
-  then
-     echo 'CONTENT_USER_COUNT is required'
-     exit 1
-  fi
+  generate_ss_data $1
+  _GEN_RET="$?"
 
-  CONTENT_VAR_SIZE_ARG=''
-  if [ "${GENERATE_CONTENT,,}" == "true" ] && [ "${CONTENT_FILES_FOR_GET,,}" == 'true' ]
-  then
-     CONTENT_VAR_SIZE_ARG='--generate-variable-size'
-  fi
-  CONTENT_FIXED_SIZE_ARG=''
-  if [ "${GENERATE_CONTENT,,}" == "true" ] && [ "${CONTENT_FIXED_SIZE_FILECOUNT}" -gt 0 ]
-  then
-     CONTENT_FIXED_SIZE_ARG="--generate-fixed-size --file-size 10 --file-count $((CONTENT_FIXED_SIZE_FILECOUNT))"
-  fi
-  CONTENT_RDF_ARG=''
-  if [ "${GENERATE_CONTENT,,}" == "true" ] && [ "${CONTENT_FILES_RDF,,}" == 'true' ]
-  then
-     if [ ! -e "${data_dir}/infobox-properties_lang=nl__head75000_10MB.nt" ]
-     then
-        echo 'Missing required RDF base file "'"${data_dir}/infobox-properties_lang=nl__head75000_10MB.nt"'"'
-        exit 1
-     fi
-     if [ ! -e "${data_dir}/infobox-properties_lang=nl__head7500_1MB.nt" ]
-     then
-        echo 'Missing required RDF base file "'"${data_dir}/infobox-properties_lang=nl__head7500_1MB.nt"'"'
-        exit 1
-     fi
-     if [ ! -e "${data_dir}/infobox-properties_lang=nl__head750_100kB.nt" ]
-     then
-        echo 'Missing required RDF base file "'"${data_dir}/infobox-properties_lang=nl__head750_100kB.nt"'"'
-        exit 1
-     fi
-     if [ "${CONTENT_FILES_RDF_SIZE}" == '100000' ]
-     then
-        CONTENT_RDF_ARG='--generate-rdf --base-rdf-file '"${data_dir}/infobox-properties_lang=nl__head750_100kB.nt"
-     elif [ "${CONTENT_FILES_RDF_SIZE}" == '1000000' ]
-     then
-        CONTENT_RDF_ARG='--generate-rdf --base-rdf-file '"${data_dir}/infobox-properties_lang=nl__head7500_1MB.nt"
-     elif [ "${CONTENT_FILES_RDF_SIZE}" == '10000000' ]
-     then
-        CONTENT_RDF_ARG='--generate-rdf --base-rdf-file '"${data_dir}/infobox-properties_lang=nl__head75000_10MB.nt"
-     else
-        echo "RDF file size ${CONTENT_FILES_RDF_SIZE} (${CONTENT_FILES_RDF_SIZE_NICK}) not supported"
-        exit 1
-     fi
-  fi
-
-  AUTHORIZATION_ARG=''
-#  AUTHORIZATION_ARG='--add-acl-files'
-  if [ "${AUTHORIZATION}" == 'webacl' ] || [ "${AUTHORIZATION}" == 'wac' ]
-  then
-    AUTHORIZATION_ARG='--add-acl-files'
-  fi
-  if [ "${AUTHORIZATION}" == 'acp' ]
-  then
-    AUTHORIZATION_ARG='--add-acr-files'
-  fi
-  if [ "${GENERATED_FILES_ADD_AC_PER_RESOURCE}" == 'false' ]
-  then
-    AUTHORIZATION_ARG="${AUTHORIZATION_ARG} --no-add-ac-file-per-resource"
-  fi
-  if [ "${GENERATED_FILES_ADD_AC_PER_DIR}" == 'false' ]
-  then
-    AUTHORIZATION_ARG="${AUTHORIZATION_ARG} --no-add-ac-file-per-dir"
-  fi
-
-  set -x
-  css-populate --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" \
-      --generate-users \
-      --user-count "${CONTENT_USER_COUNT}" \
-      ${AUTHORIZATION_ARG} \
-      --dir-depth "${GENERATED_FILES_NEST_DEPTH}" \
-      ${CONTENT_VAR_SIZE_ARG} \
-      ${CONTENT_FIXED_SIZE_ARG} \
-      ${CONTENT_RDF_ARG} \
-       || touch "${_CSS_DATA_DIR}/ERROR"
-  set +x
-  if "${_START_CSS}"
+  if "${_START_SS}"
   then
     systemctl stop css traefik || true
   fi
 
-  if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
-  then
-    if [ -e "${_CSS_DATA_DIR}/ERROR" ]
-    then
-      echo "Failed to generating data for CSS commit $NICK"
-      exit 1
-    fi
-
-    sleep 1
-  fi
-
-  return 0;
+  return ${_GEN_RET}
 }
 
 ##################################################################################################################
@@ -899,7 +753,7 @@ function collect_access_tokens() {
   start_css
 
   echo "Collecting access tokens for all users"
-  css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+  css-flood --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
            --authenticate --authenticateCache all --filename dummy.txt \
            --steps 'loadAC,fillAC,validateAC,saveAC' \
            --ensure-auth-expiration 600 \
@@ -1190,7 +1044,7 @@ then
   if [ "$SERVER_FACTORY" == "https" ] && [ ! -e /etc/letsencrypt/options-ssl-nginx.conf ]
   then
     cp -v /etc/nginx/sites-enabled/default /tmp/backup-nginx-sites-enabled-default
-    certbot run --nginx --domain "${CSS_PUBLIC_DNS_NAME}" --agree-tos --register-unsafely-without-email
+    certbot run --nginx --domain "${SS_PUBLIC_DNS_NAME}" --agree-tos --register-unsafely-without-email
 
     cp -v /etc/nginx/sites-enabled/default /tmp/backup-nginx-sites-enabled-default-after-certbot
     cp -v /tmp/backup-nginx-sites-enabled-default /etc/nginx/sites-enabled/default
@@ -1200,7 +1054,7 @@ server {
 	root ${SERVER_DATA_DIR};
 
 	index index.html index.htm index.nginx-debian.html;
-  server_name ${CSS_PUBLIC_DNS_NAME};
+  server_name ${SS_PUBLIC_DNS_NAME};
 
 	location / {
 		# First attempt to serve request as file, then
@@ -1273,7 +1127,7 @@ then
   echo "Configure and start authentication cache webserver at 8888"
 
   echo "Making sure that auth cache ${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE} is up to date"
-  css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+  css-flood --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
            --authenticate --authenticateCache all --filename dummy.txt \
            --steps 'loadAC,fillAC,validateAC,saveAC,testRequest' \
            --ensure-auth-expiration 600 \
@@ -1285,7 +1139,7 @@ then
     rm -v "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}"
 
     echo "Collecting access tokens for all users"
-    css-flood --url "${HTTP_PROTO_PREFIX}://${CSS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+    css-flood --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
              --authenticate --authenticateCache all --filename dummy.txt \
              --steps 'fillAC,validateAC,saveAC,testRequest' \
              --ensure-auth-expiration 600 \

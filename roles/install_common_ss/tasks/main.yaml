@@ -1,0 +1,29 @@
+- name: Install Exe provide_certs.sh
+  ansible.builtin.copy:
+    src: "files_ss/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=rx
+  loop:
+    - provide_certs.sh
+  when: ss_use_https
+
+- name: Install auth-cache-webserver Systemd Services
+  ansible.builtin.copy:
+    src: "files_ss/auth-cache-webserver.service"
+    dest: "/etc/systemd/system/auth-cache-webserver.service"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  when: start_auth_cache_webserver
+
+- name: Install Exe generate_content.sh
+  ansible.builtin.copy:
+    src: "files_ss/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=rx
+  loop:
+    - generate_content.sh

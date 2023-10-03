@@ -1,3 +1,11 @@
+- name: Ensure /etc/apt/keyrings/ exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/
+    owner: root
+    group: root
+    state: directory
+    mode: u=rwx,g=rx,o=rx
+
 - name: "Add docker apt key"
   ansible.builtin.apt_key:
     url: https://download.docker.com/linux/ubuntu/gpg

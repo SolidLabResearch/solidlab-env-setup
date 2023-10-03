@@ -1,0 +1,23 @@
+[Unit]
+Description=Kvasir Solid Server
+# Indicate that we use the network.
+#    When starting up, this does not guarantee "the IP is ready", only that "network management stack is up". (Which is enough to start listening on a socket)
+#    When shutting down, this does guarantee that this service gets stopped before network is taken down.
+# (Avoid using network-online.target if not needed. It delays startup. If you use it, use it in both After= and Wants=)
+After=network.target
+
+[Service]
+WorkingDirectory=/usr/local/src/kvasir
+EnvironmentFile=/usr/local/etc/kss_service.env
+ExecStartPre=/usr/bin/docker compose up -d
+ExecStart=/usr/local/src/kvasir/gradlew :services:monolith:quarkusDev
+ExecStopPost=/usr/bin/docker compose down
+Restart=on-failure
+RestartSec=2
+# Max number of open files (ulimit -n)
+#LimitNOFILE=1024  # default
+LimitNOFILE=102400
+#LimitNOFILE=infinity
+
+[Install]
+WantedBy=multi-user.target

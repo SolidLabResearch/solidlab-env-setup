@@ -32,7 +32,7 @@ execute:
 #       #!/bin/bash -e
 #
 #       # Make client use the experiment link instead of the control link, even when connecting to the CSS DNS name
-#       sed -e '/ilabt\.iminds\.be/!s/^\(192.168.* css.*\)/\1 '"$(cat /etc/host_fqdn)"'/' -i /etc/hosts
+#       sed -e '/ilabt\.iminds\.be/!s/^\(192.168.* ss.*\)/\1 '"$(cat /etc/host_fqdn)"'/' -i /etc/hosts
 #
 #       echo "/etc/hosts on client now forces experiment link IP for $(cat /etc/host_fqdn):"
 #       head -n 20 /etc/hosts
@@ -61,7 +61,7 @@ execute:
 ansible:
     host:
        type: EXISTING
-       name: css0
+       name: ss0
        galaxy-command: /usr/local/bin/ansible-galaxy
        playbook-command: /usr/local/bin/ansible-playbook
        upload:

@@ -1,0 +1,46 @@
+# This is java 11 on Ubuntu 20
+#- name: "Install Java"
+#  ansible.builtin.apt:
+#    name:
+#      - default-jre
+#    state: present
+
+- name: Ensure /etc/apt/keyrings/ exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/
+    owner: root
+    group: root
+    state: directory
+    mode: u=rwx,g=rx,o=rx
+
+- name: "Add Temurin Java apt key"
+  ansible.builtin.get_url:
+      url: https://packages.adoptium.net/artifactory/api/gpg/key/public
+      dest: '/etc/apt/keyrings/adoptium.asc'
+
+# There was a weird issue with https://packages.adoptium.net certificate.
+# update-ca-certificates was required to make it work.
+# (which is weird since this should have been done in the common role)
+- name: Make sure SSL root certs are up to date
+  ansible.builtin.apt:
+    pkg: [ 'ca-certificates' ]
+    update_cache: yes
+
+- name: Fetch docker version
+  ansible.builtin.shell: '/usr/sbin/update-ca-certificates'
+
+# debugged with apt-get -o Debug::Acquire::http=true update
+- name: "Add Temurin Java apt repo"
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb {{ ansible_distribution_release }} main"
+    update_cache: yes
+
+- name: "Install Temurin Java 20"
+  ansible.builtin.apt:
+    name:
+      - temurin-20-jdk
+    state: present
+
+- name: Fetch java version
+  ansible.builtin.shell: 'java --version'
+  register: java_version

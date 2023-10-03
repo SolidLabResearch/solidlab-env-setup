@@ -21,19 +21,24 @@
     - role: css_flood
       tags: setup
     - role: docker
-      when: ss_type == 'kss'
+      when: install_kss
       tags: setup
     - role: certbot
-      when: ss_type == 'css'
+      when: ss_use_https
       tags: setup
     - role: redis
-      when: ss_type == 'css'
+      when: install_css
       tags: setup
-    - role: setup_css_script
-      when: ss_type == 'css'
+    - role: java
+      when: install_kss
+      tags: setup
+    - role: install_common_ss
+      tags: ['css', 'kss']
+    - role: install_css
+      when: install_css
       tags: css
     - role: install_kss
-      when: ss_type == 'kss'
+      when: install_kss
       tags: kss
   tasks:
 #    - name: Print all available facts
@@ -59,17 +64,26 @@
 
     - name: Start CSS
       shell: setup_css.sh
-      when: ( start_ss and ss_type == 'css' )
+      when: start_css
       timeout: "{{ 20 * 60 }}"
       environment:
-        CSS_PUBLIC_DNS_NAME: "{{ '' if ss_use_https else 'localhost' }}"
+        SS_PUBLIC_DNS_NAME: "{{ '' if ss_use_https else 'localhost' }}"
       tags: css
     # setup_css.sh writes to /usr/local/share/ss_url
+
+    - name: Start KSS
+      shell: setup_kss.sh
+      when: start_kss
+      timeout: "{{ 20 * 60 }}"
+      environment:
+        SS_PUBLIC_DNS_NAME: "{{ '' if ss_use_https else 'localhost' }}"
+      tags: css
+    # setup_kss.sh writes to /usr/local/share/ss_url
 
     - name: Collect server URLs
       ansible.builtin.fetch:
         src: /usr/local/share/ss_url
         dest: ss_url_{{ inventory_hostname }}
         flat: yes
-      when: start_ss
+      when: ( start_kss or start_css )
       tags: post

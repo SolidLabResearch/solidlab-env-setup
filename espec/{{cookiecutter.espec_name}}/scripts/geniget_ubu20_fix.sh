@@ -16,10 +16,10 @@ fi
 
 # The problem with UBU 20.04 image on the wall is that it doesn't set IPs on experiment interfaces
 
-if [ "$(find /var/lib/apt/lists -cmin -60 -type f | wc -l)" -gt 0 ]
-then
+#if [ "$(find /var/lib/apt/lists -cmin -60 -type f | wc -l)" -gt 0 ]
+#then
   DEBIAN_FRONTEND=noninteractive sudo apt-get update
-fi
+#fi
 DEBIAN_FRONTEND=noninteractive apt-get install -y -f python2 python-is-python2
 
 echo 'Ubuntu 20.04 wall images do not set experiment interface IPs. IPs are now:'
