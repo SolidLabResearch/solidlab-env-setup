@@ -62,11 +62,13 @@ function generate_ss_data() {
   #   $2 = port the SS is listening on
   local _SS_DATA_DIR="$1"
   local _SS_PORT="$2"
+  local _USERS_JSON_FILE="$3"
 
   #
   # Input env vars:
   #   $SS_PUBLIC_DNS_NAME
   #   $data_dir
+  #   $USERS_JSON  where to store the users.json file containing the generated users (or existing users)
   #
   #   #for content generation config:
   #   ${CONTENT_USER_COUNT}
@@ -150,15 +152,30 @@ function generate_ss_data() {
     AUTHORIZATION_ARG="${AUTHORIZATION_ARG} --no-add-ac-file-per-dir"
   fi
 
+  ACCOUNT_ARGS=""
+  if [ "${GENERATE_USERS,,}" != "true" ]
+  then
+    ACCOUNT_ARGS="--accounts CREATE"
+  else
+    ACCOUNT_ARGS="--accounts USE_EXISTING"
+  fi
+
+  if [ -z "${_USERS_JSON_FILE}" ]
+  then
+    ACCOUNT_ARGS="${ACCOUNT_ARGS} --account-source TEMPLATE --account-source-count ${CONTENT_USER_COUNT}"
+  else
+    ACCOUNT_ARGS="${ACCOUNT_ARGS} --account-source FILE --account-source-file ${_USERS_JSON_FILE}"
+  fi
+
   set -x
   css-populate --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:${_SS_PORT}" \
-      --generate-users \
-      --user-count "${CONTENT_USER_COUNT}" \
+      ${ACCOUNT_ARGS} \
       ${AUTHORIZATION_ARG} \
       --dir-depth "${GENERATED_FILES_NEST_DEPTH}" \
       ${CONTENT_VAR_SIZE_ARG} \
       ${CONTENT_FIXED_SIZE_ARG} \
       ${CONTENT_RDF_ARG} \
+      --user-json-out "${USERS_JSON}" \
        || touch "${_SS_DATA_DIR}/ERROR"
   set +x
 

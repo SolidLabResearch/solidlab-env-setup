@@ -55,6 +55,12 @@ set -o allexport
 source "${env_file}"
 set +o allexport
 
+
+KSS_SERVICE_ENV_FILE="${etc_dir}/kss_service.env"
+KSS_USERS_ENV_FILE="${etc_dir}/kss_users.env"
+KSS_USERS_JSON_FILE="${etc_dir}/kss_users.json"
+USERS_JSON="${etc_dir}/kss_created_users.json"
+
 # The caller of setup_kss.sh can set the FQDN
 # If not set by caller, use /etc/host_fqdn
 if [ -z "$SS_PUBLIC_DNS_NAME" ]
@@ -280,8 +286,59 @@ function install_kss() {
 ##################################################################################################################
 ##################################################################################################################
 
+function generate_kss_users() {
+  if [ "${GENERATE_USERS,,}" != "true" ]
+  then
+    # Nothing to do
+    return 0;
+  fi
+
+  if [ -z "${CONTENT_USER_COUNT}" ]
+  then
+     echo 'CONTENT_USER_COUNT is required'
+     exit 1
+  fi
+
+  echo '' > "${KSS_USERS_ENV_FILE}"
+  echo '[' > "${KSS_USERS_JSON_FILE}"
+
+  for i in $(seq 0 $(( CONTENT_USER_COUNT - 1 )) )
+  do
+    cat >>"${KSS_USERS_ENV_FILE}" <<"EOF"
+KVASIR_DEMO_SETUP_PODS_${i}__URI=http://localhost:8080/ldp/user${i}/
+KVASIR_DEMO_SETUP_PODS_${i}__OIDC_ISSUER=http://localhost:3000/
+KVASIR_DEMO_SETUP_PODS_${i}__EMAIL=user${i}@example.org
+KVASIR_DEMO_SETUP_PODS_${i}__PASSWORD=password${i}
+
+EOF
+
+    cat >>"${KSS_USERS_JSON_FILE}" <<"EOF"
+        { "username": "user${i}",
+          "password": "password${i}",
+          "email": "user${i}@example.org",
+          "podName": "user${i}",
+          "oidcIssuer": "http://localhost:3000/",
+          "uri": "http://localhost:8080/ldp/user${i}/"
+        }
+EOF
+    if [ $i -lt $(( CONTENT_USER_COUNT - 1 )) ]
+    then
+      echo ',' >> "${KSS_USERS_JSON_FILE}"
+    fi
+
+  done
+
+  echo ']' >> "${KSS_USERS_JSON_FILE}"
+}
+
+##################################################################################################################
+##################################################################################################################
+
 function generate_kss_data() {
-  generate_ss_data "/tmp/" "${USED_SS_PORT}"
+  # Users have already been generated
+  GENERATE_USERS=false
+
+  generate_ss_data "/tmp/" "${USED_SS_PORT}" "${KSS_USERS_JSON_FILE}"
   _GEN_RET="$?"
 
   return ${_GEN_RET}
@@ -298,6 +355,7 @@ echo '#########################################################'
 
 echo "Starting KSS"
 systemctl stop redis-server || echo 'ignoring stop failed'
+generate_kss_users
 start_kss
 
 echo '#########################################################'

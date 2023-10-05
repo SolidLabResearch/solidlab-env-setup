@@ -1,14 +1,14 @@
 ---
 install_kss: true
-install_css: false
+install_css: true
 #ss_use_https: false
 ss_use_https: true
 start_css: false
 start_kss: false
 css_default_checkout_arg: main
-install_perfstat: false
-install_server_css_populate: false
-install_server_css_flood: false
+install_perfstat: true
+install_server_css_populate: true
+install_server_css_flood: true
 start_auth_cache_webserver: false
 css_default_generate_users: false
 css_default_generate_content: false

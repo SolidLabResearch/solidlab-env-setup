@@ -9,6 +9,7 @@ After=network.target
 [Service]
 WorkingDirectory=/usr/local/src/kvasir
 EnvironmentFile=/usr/local/etc/kss_service.env
+EnvironmentFile=/usr/local/etc/kss_users.env
 ExecStartPre=/usr/bin/docker compose up -d
 ExecStart=/usr/local/src/kvasir/gradlew :services:monolith:quarkusDev
 ExecStopPost=/usr/bin/docker compose down

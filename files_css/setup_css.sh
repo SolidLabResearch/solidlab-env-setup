@@ -62,6 +62,8 @@ set -o allexport
 source "${env_file}"
 set +o allexport
 
+USERS_JSON="${etc_dir}/css_created_users.json"
+
 if [ -z "$SERVER_FACTORY" ]
 then
   echo 'Missing env var SERVER_FACTORY. Defaulting to SERVER_FACTORY="http"'
