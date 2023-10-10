@@ -9,7 +9,7 @@ After=network.target
 [Service]
 WorkingDirectory=<<CSS_ROOT_PATH>>
 EnvironmentFile=<<ENV_FILE>>
-ExecStart=<<CSS_EXE>> -c <<CSS_CONFIG_FILE>> -b <<CSS_BASE_URL>> --rootFilePath <<CSS_ROOT_PATH>> --workers ${WORKERS} -l warn --port 3000
+ExecStart=<<CSS_EXE>> -c <<CSS_CONFIG_FILE>> -b <<CSS_BASE_URL>> --rootFilePath <<CSS_ROOT_PATH>> --workers ${WORKERS} -l info --port 3000
 Restart=on-failure
 RestartSec=2
 # Max number of open files (ulimit -n)

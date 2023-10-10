@@ -81,14 +81,15 @@
       #        regexp: '^SS_PUBLIC_DNS_NAME='
       #        line: SS_PUBLIC_DNS_NAME='{{ '' if ss_use_https else 'localhost' }}'
 
-- name: Set OVERRIDE_BASE_URL in setup_css.env
-  ansible.builtin.lineinfile:
-    path: /usr/local/etc/setup_css.env
-    regexp: '^OVERRIDE_BASE_URL='
-    line:  OVERRIDE_BASE_URL='{{ base_url }}'
+#- name: Set OVERRIDE_BASE_URL in setup_css.env
+#  ansible.builtin.lineinfile:
+#    path: /usr/local/etc/setup_css.env
+#    regexp: '^OVERRIDE_BASE_URL='
+#    line: "OVERRIDE_BASE_URL='https://{{ chosen_fqdn }}/'"
 
-- name: Set OVERRIDE_PORT in setup_css.env
-  ansible.builtin.lineinfile:
-    path: /usr/local/etc/setup_css.env
-    regexp: '^OVERRIDE_PORT='
-    line:  OVERRIDE_PORT='{{ ss_port }}'
+#- name: Set OVERRIDE_PORT in setup_css.env
+#  ansible.builtin.lineinfile:
+#    path: /usr/local/etc/setup_css.env
+#    regexp: '^OVERRIDE_PORT='
+#    line:  OVERRIDE_PORT='{{ ss_port }}'
+

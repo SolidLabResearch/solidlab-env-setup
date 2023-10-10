@@ -1,0 +1,4 @@
+dependencies:
+  - role: imecilabt.vwall.enable_nat
+  - role: imecilabt.vwall.expand_root_disk
+#  - role: imecilabt.vwall.upgrade_ubuntu

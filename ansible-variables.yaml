@@ -7,6 +7,7 @@ start_css: false
 start_kss: false
 css_default_checkout_arg: main
 install_perfstat: true
+install_perftest_agent: true
 install_server_css_populate: true
 install_server_css_flood: true
 start_auth_cache_webserver: false

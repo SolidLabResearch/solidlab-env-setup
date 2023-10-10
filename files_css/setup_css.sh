@@ -253,13 +253,16 @@ function start_css() {
   # Assumptions:
   #   - /etc/systemd/system/css.service is setup as needed
   #   - /etc/systemd/system/css.service points to the correct server dir and config file
-  #   - In /etc/systemd/system/css.service
-  #        - if port  443 is used, traefik is not needed
-  #        - if port 3000 is used, traefik is required
+  #   - the port and https/http is passed as args
+
+  local _SS_PORT="$1"
+  local _SS_PROTO="$2"
+
+  echo "Starting server on port ${_SS_PORT} with proto ${_SS_PROTO}..."
 
   systemctl daemon-reload
   _USED_CSS_PORT=$(sed -n -e 's/^ExecStart.*--port \([0-9][0-9]*\).*/\1/p' /etc/systemd/system/css.service)
-  echo "USED_CSS_PORT in css.service=${_USED_CSS_PORT}"
+  echo "   USED_CSS_PORT in css.service=${_USED_CSS_PORT}"
 
   # We never use traefik anymore. If this IS needed, re-enable this correctly
   #if [ "${_USED_CSS_PORT}" -eq 443 ]
@@ -284,15 +287,15 @@ function start_css() {
   _CSS_READY=false
   for wait in $(seq 1 120)  # wait max 2 minutes, then just give up
   do
-    if ss -Hlnp --tcp sport "${_USED_CSS_PORT}" | grep -q '*:'"${_USED_CSS_PORT}"
+    if ss -Hlnp --tcp sport "${_SS_PORT}" | grep -q '*:'"${_SS_PORT}"
     then
-       echo "      OK: Something seems to be listening on port ${_USED_CSS_PORT}!"
+       echo "      OK: Something seems to be listening on port ${_SS_PORT}!"
        _CSS_READY=true
 #       sleep 0.1
        break
     fi
     sleep 1  #wait until CSS is ready
-    echo "   Waiting for CSS to listen to port ${_USED_CSS_PORT} ($wait)..."
+    echo "   Waiting for CSS to listen to port ${_SS_PORT} ($wait)..."
   done
 
   if ! ${_CSS_READY}
@@ -301,7 +304,7 @@ function start_css() {
     exit 1
   fi
 
-  if [ "$SERVER_FACTORY" == "https" ]
+  if [ "$_SS_PROTO" == "https" ]
   then
     # Wait until server under test has a valid cert
     #   (in most cases, that is from the start, but in the case of traefik, it might have to be fetched from letsencrypt)
@@ -309,14 +312,14 @@ function start_css() {
     _CSS_CERT_READY=false
     for wait in $(seq 1 120)  # wait max 2 minutes, then just give up
     do
-      if echo -n | openssl s_client -connect "${SS_PUBLIC_DNS_NAME}:443" -verify_return_error > /dev/null 2>&1;
+      if echo -n | openssl s_client -connect "${SS_PUBLIC_DNS_NAME}:${_SS_PORT}" -verify_return_error > /dev/null 2>&1;
       then
-        echo "      OK: Got a valid certificate from ${SS_PUBLIC_DNS_NAME}:443"
+        echo "      OK: Got a valid certificate from ${SS_PUBLIC_DNS_NAME}:${_SS_PORT}"
         _CSS_CERT_READY=true
         sleep 0.2
         break
       else
-        echo "      Not (yet) OK: Failed to get valid cert on ${SS_PUBLIC_DNS_NAME}:443"
+        echo "      Not (yet) OK: Failed to get valid cert on ${SS_PUBLIC_DNS_NAME}:${_SS_PORT}"
       fi
       sleep 1  #wait until cert is ready
       echo "   Waiting for a valid certificate ($wait)..."
@@ -334,15 +337,15 @@ function start_css() {
   # test SSL on 3000: openssl s_client -connect localhost:3000 -servername $(cat /etc/host_fqdn) -msg
 
   echo
-  echo -n "   Test CSS at ${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/ ..."
+  echo -n "   Test CSS at ${_SS_PROTO}://${SS_PUBLIC_DNS_NAME}:${_SS_PORT}/ ..."
 #  echo -e "GET ${SS_PUBLIC_DNS_NAME}/ HTTP/1.1\nHost: selftest\nConnection: close\n\n" | tee /dev/stdout | openssl s_client -connect "${SS_PUBLIC_DNS_NAME}:443" -quiet
-  _CSS_TEST_OUTPUT="$(curl -s -I "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/" || true)"
+  _CSS_TEST_OUTPUT="$(curl -s -I "${_SS_PROTO}://${SS_PUBLIC_DNS_NAME}:${_SS_PORT}/" || true)"
 
   if ! echo "${_CSS_TEST_OUTPUT}" | grep -i -q 'x-powered-by: Community Solid Server'
   then
     echo " FAILED"
     echo 'ERROR: CSS Test failed.'
-    echo "       Ran command: curl -s -I ${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:${_USED_CSS_PORT}/"
+    echo "       Ran command: curl -s -I ${_SS_PROTO}://${SS_PUBLIC_DNS_NAME}:${_SS_PORT}/"
     echo "       Hint: check CSS service log for more info"
     echo '       Output:'
     echo "${_CSS_TEST_OUTPUT}"
@@ -695,6 +698,14 @@ function install_css() {
 ##################################################################################################################
 
 function generate_css_data() {
+  local _CSS_DATA_DIR="$1"
+
+  if [ -z "${_CSS_DATA_DIR}" ]
+  then
+    echo 'Missing arg _CSS_DATA_DIR'
+    exit 1
+  fi
+
   if [ "${GENERATE_CONTENT,,}" != "true" ] && [ "${GENERATE_USERS,,}" != "true" ]
   then
     # Nothing to do
@@ -715,7 +726,7 @@ function generate_css_data() {
   if "${_START_SS}"
   then
     update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000 true
-    start_css
+    start_css 3000 http
   fi
 
   generate_ss_data $1
@@ -752,7 +763,7 @@ function collect_access_tokens() {
   fi
 
   update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000 true
-  start_css
+  start_css 3000 http
 
   echo "Collecting access tokens for all users"
   css-flood --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
@@ -942,6 +953,12 @@ then
     # Add auth cache to content dir
     if [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}" ] || [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}/.internal/accounts" ] || [ ! -e "${SERVER_DATA_CLEAN_AUTH_DIR}" ] || [ -e "${SERVER_DATA_CLEAN_AUTH_DIR}/ERROR" ]
     then
+      if [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}" ]
+      then
+        echo 'Fatal: No CSS dir clean copy available. (Should have been created earlier by this script)'
+        exit 1
+      fi
+
       echo "Need to make an auth-cache for $NICK-${CONTENT_ID} in ${SERVER_DATA_CLEAN_AUTH_DIR}"
       echo "Filling '${SERVER_DATA_CLEAN_AUTH_DIR}' with clean data for CSS commit $NICK"
       rm -rf "${SERVER_DATA_CLEAN_AUTH_DIR}"
@@ -957,6 +974,12 @@ then
   else
     if [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}" ]
     then
+      if [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}" ]
+      then
+        echo 'Fatal: No CSS dir clean copy available. (Should have been created earlier by this script)'
+        exit 1
+      fi
+
       echo "Creating clean '${SERVER_DATA_CLEAN_AUTH_DIR}' for CSS commit $NICK"
       cp -a "${CSS_COMMIT_CLEAN_DATA_DIR}" "${SERVER_DATA_CLEAN_AUTH_DIR}"
     fi
@@ -1104,7 +1127,7 @@ echo '#########################################################'
 if [ "$SERVER_UNDER_TEST" == "css" ]
 then
   echo "Starting CSS (with config ${CONFIG_FILE} server_root ${SERVER_DATA_DIR})"
-  start_css
+  start_css "${USED_CSS_PORT}" "${HTTP_PROTO_PREFIX}"
 fi
 
 #########################################################

@@ -4,3 +4,5 @@ collections:
 - ansible.utils
 - community.docker
 - ansible.posix
+- git+https://gitlab.ilabt.imec.be/wvdemeer/wall-public-scripts.git#/imecilabt/
+- git+https://gitlab.ilabt.imec.be/ilabt/ilabt-ansible-collections.git#/imecilabt/common/

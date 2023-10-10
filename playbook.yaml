@@ -1,25 +1,38 @@
 ---
-- hosts: ss_servers
+- hosts: all
   become: yes
   vars_files:
     - ansible-variables.yaml
   roles:
-    - role: common
+    - role: vwall2_node
+      tags: setup
+    - role: imecilabt.common.be_timezone
+      tags: setup
+    - role: imecilabt.common.software
+      tags: setup
+    - role: imecilabt.common.fix_annoyances
+      tags: setup
+    - role: imecilabt.common.git_known_hosts
       tags: setup
     - role: fqdn
-      tags: setup
-    - role: github_known_hosts
-      tags: setup
+      tags: setup, facts
     - role: python
-      tags: setup
+      tags: setup, python
     - role: perfstat
       tags: setup
+    - role: install_perftest_agent
+      tags: setup, perftest_agent
     - role: nodejs
       tags: setup
     - role: css_populate
       tags: setup
     - role: css_flood
       tags: setup
+- hosts: ss_servers
+  become: yes
+  vars_files:
+    - ansible-variables.yaml
+  roles:
     - role: docker
       when: install_kss
       tags: setup

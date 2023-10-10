@@ -1,0 +1,33 @@
+[Unit]
+Description=SolidLab Perftest Agent
+# Indicate that we use the network.
+#    When starting up, this does not guarantee "the IP is ready", only that "network management stack is up". (Which is enough to start listening on a socket)
+#    When shutting down, this does guarantee that this service gets stopped before network is taken down.
+# (Avoid using network-online.target if not needed. It delays startup. If you use it, use it in both After= and Wants=)
+After=network.target
+
+[Service]
+WorkingDirectory=/tmp
+Environment="PERFTEST_API_ENDPOINT=https://testing.solidlab.be/api/v1/"
+Environment="MACHINE_ID=todo"
+Environment="TESTENV_ID=269"
+Environment="AUTH_TOKEN=T3kH3635EuOpqTqZQieZA8qYYounvc01CYhi_Z4W7xm8ueZsDrEf6A"
+Environment="CSS_CONFIG_FILE=/etc/css/perftest.json"
+Environment="PERFSTAT_ENV_FILE=/etc/perfstat.env"
+Environment="HOSTNAME=none"
+Environment="PORT=none"
+# <api_endpoint> <machine_id> <test_env_id> <auth_token> <css_config_file> <css_host> <css_port>
+ExecStart=/usr/local/venv/perftest-agent/bin/solidlab-perftest-agent "${PERFTEST_API_ENDPOINT}" "${MACHINE_ID}" "${TESTENV_ID}" "${AUTH_TOKEN}" "${CSS_CONFIG_FILE}" "${PERFSTAT_ENV_FILE}" "${HOST}" "${PORT}"
+Restart=no
+#Type=exec
+
+# see man systemd.kill for details about the below
+
+# SIGINT will cause solidlab-perfstat cleanly finish, including waiting for last uploads.
+KillSignal=SIGINT
+
+# Wait longer than the default 90 seconds after SIGINT before SIGKILL is sent
+TimeoutStopSec=240
+
+[Install]
+WantedBy=multi-user.target

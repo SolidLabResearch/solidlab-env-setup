@@ -1,0 +1,43 @@
+- name: Setup venv with PerfTest Agent
+  ansible.builtin.pip:
+    name: solidlab-perftest-agent
+    virtualenv_command: '{{ python_exe }} -m venv'
+    virtualenv: /usr/local/venv/perftest-agent/
+  when: install_perftest_agent
+
+- name: Install PerfTest Agent Systemd Services
+  ansible.builtin.copy:
+    src: "files_all/solidlab-perftest-agent.service"
+    dest: "/etc/systemd/system/solidlab-perftest-agent.service"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  when: install_perftest_agent
+
+#- name: Set PerfTest Agent Systemd HOSTNAME
+#  ansible.builtin.lineinfile:
+#    path: /etc/systemd/system/solidlab-perftest-agent.service
+#    regexp: '^Environment="HOSTNAME='
+#    line: 'Environment="HOSTNAME={{ chosen_fqdn }}"'
+#  when: install_perftest_agent
+
+#- name: Set PerfTest Agent Systemd HOSTNAME
+#  ansible.builtin.lineinfile:
+#    path: /etc/systemd/system/solidlab-perftest-agent.service
+#    regexp: '^Environment="HOSTNAME='
+#    line: 'Environment="HOSTNAME={{ chosen_fqdn }}"'
+#  when: install_perftest_agent
+#
+#- name: Set PerfTest Agent Systemd PORT
+#  ansible.builtin.lineinfile:
+#    path: /etc/systemd/system/solidlab-perftest-agent.service
+#    regexp: '^Environment="PORT='
+#    line: 'Environment="PORT={{ 443 }}"'
+#  when: install_perftest_agent
+
+- name: Set PerfTest Agent Systemd MACHINE_ID
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/system/solidlab-perftest-agent.service
+    regexp: '^Environment="MACHINE_ID='
+    line: 'Environment="MACHINE_ID={{ inventory_hostname }}"'
+  when: install_perftest_agent

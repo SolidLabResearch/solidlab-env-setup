@@ -3,61 +3,61 @@ rspec: solidlab-env.rspec
 output:
   - type: SSH_INFO_CSV
     destination: 'ssh_info.csv'
-upload:
-   - download: https://gitlab.ilabt.imec.be/wvdemeer/wall-public-scripts/-/raw/master/expand-root-disk.sh?inline=false
-     path: ~/expand-root-disk.sh
-   - download: https://gitlab.ilabt.imec.be/wvdemeer/wall-public-scripts/-/raw/master/enable-nat.sh?inline=false
-     path: ~/enable-nat.sh
-execute:
-   - direct: |
-       #!/bin/bash -e
-
-       # The enable-nat script is idempotent and safe on non-wall nodes
-      
-       chmod u+x enable-nat.sh
-       ./enable-nat.sh
-    
-       #bash -e -c '. <(wget -O - -q https://gitlab.ilabt.imec.be/wvdemeer/wall-public-scripts/-/raw/master/enable-nat.sh?inline=false)'
-       #wget -O - -q https://www.wall2.ilabt.iminds.be/enable-public-ipv4.sh | bash
-     path: setup_network.sh
-     sudo: true
-   - bundled: scripts/geniget_ubu20_fix.sh
-     sudo: true
-   - direct: |
-       #!/bin/bash -e
-       timedatectl set-timezone Europe/Brussels
-     path: setup_timezone.sh
-     sudo: true
+#upload:
+#   - download: https://gitlab.ilabt.imec.be/wvdemeer/wall-public-scripts/-/raw/master/expand-root-disk.sh?inline=false
+#     path: ~/expand-root-disk.sh
+#   - download: https://gitlab.ilabt.imec.be/wvdemeer/wall-public-scripts/-/raw/master/enable-nat.sh?inline=false
+#     path: ~/enable-nat.sh
+#execute:
 #   - direct: |
 #       #!/bin/bash -e
 #
-#       # Make client use the experiment link instead of the control link, even when connecting to the CSS DNS name
-#       sed -e '/ilabt\.iminds\.be/!s/^\(192.168.* ss.*\)/\1 '"$(cat /etc/host_fqdn)"'/' -i /etc/hosts
+#       # The enable-nat script is idempotent and safe on non-wall nodes
 #
-#       echo "/etc/hosts on client now forces experiment link IP for $(cat /etc/host_fqdn):"
-#       head -n 20 /etc/hosts
-#     path: client-use-exp-link.sh
+#       chmod u+x enable-nat.sh
+#       ./enable-nat.sh
+#
+#       #bash -e -c '. <(wget -O - -q https://gitlab.ilabt.imec.be/wvdemeer/wall-public-scripts/-/raw/master/enable-nat.sh?inline=false)'
+#       #wget -O - -q https://www.wall2.ilabt.iminds.be/enable-public-ipv4.sh | bash
+#     path: setup_network.sh
 #     sudo: true
-   - direct: |
-        #!/bin/bash -xe
-        
-        # This script is idempotent and safe to run on nodes without typical virtual wall disk layout
-        
-        chmod u+x expand-root-disk.sh
-        ./expand-root-disk.sh --auto --noswap
-     sudo: true
-     path: expand-root-disk-caller.sh
-   - bundled: scripts/utils.sh
-     sudo: true
+#   - bundled: scripts/geniget_ubu20_fix.sh
+#     sudo: true
+#   - direct: |
+#       #!/bin/bash -e
+#       timedatectl set-timezone Europe/Brussels
+#     path: setup_timezone.sh
+#     sudo: true
+##   - direct: |
+##       #!/bin/bash -e
+##
+##       # Make client use the experiment link instead of the control link, even when connecting to the CSS DNS name
+##       sed -e '/ilabt\.iminds\.be/!s/^\(192.168.* ss.*\)/\1 '"$(cat /etc/host_fqdn)"'/' -i /etc/hosts
+##
+##       echo "/etc/hosts on client now forces experiment link IP for $(cat /etc/host_fqdn):"
+##       head -n 20 /etc/hosts
+##     path: client-use-exp-link.sh
+##     sudo: true
 #   - direct: |
 #        #!/bin/bash -xe
 #
-#        # This script is idempotent
+#        # This script is idempotent and safe to run on nodes without typical virtual wall disk layout
 #
-#        DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:deadsnakes/ppa
-#        DEBIAN_FRONTEND=noninteractive apt-get install -y -f python3 python3-venv python3-pip python3.11 python3.11-venv
+#        chmod u+x expand-root-disk.sh
+#        ./expand-root-disk.sh --auto --noswap
 #     sudo: true
-#     path: upgrade-python.sh
+#     path: expand-root-disk-caller.sh
+#   - bundled: scripts/utils.sh
+#     sudo: true
+##   - direct: |
+##        #!/bin/bash -xe
+##
+##        # This script is idempotent
+##
+##        DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:deadsnakes/ppa
+##        DEBIAN_FRONTEND=noninteractive apt-get install -y -f python3 python3-venv python3-pip python3.11 python3.11-venv
+##     sudo: true
+##     path: upgrade-python.sh
 ansible:
     host:
        type: EXISTING
