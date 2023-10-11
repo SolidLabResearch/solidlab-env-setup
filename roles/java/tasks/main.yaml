@@ -13,11 +13,6 @@
     state: directory
     mode: u=rwx,g=rx,o=rx
 
-- name: "Add Temurin Java apt key"
-  ansible.builtin.get_url:
-      url: https://packages.adoptium.net/artifactory/api/gpg/key/public
-      dest: '/etc/apt/keyrings/adoptium.asc'
-
 # There was a weird issue with https://packages.adoptium.net certificate.
 # update-ca-certificates was required to make it work.
 # (which is weird since this should have been done in the common role)
@@ -25,9 +20,16 @@
   ansible.builtin.apt:
     pkg: [ 'ca-certificates' ]
     update_cache: yes
+    # default requested state is "present", which will not upgrade the package
+    state: latest
 
-- name: Fetch docker version
+- name: Make sure SSL root certs are up to date
   ansible.builtin.shell: '/usr/sbin/update-ca-certificates'
+
+- name: "Add Temurin Java apt key"
+  ansible.builtin.get_url:
+      url: https://packages.adoptium.net/artifactory/api/gpg/key/public
+      dest: '/etc/apt/keyrings/adoptium.asc'
 
 # debugged with apt-get -o Debug::Acquire::http=true update
 - name: "Add Temurin Java apt repo"
