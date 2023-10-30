@@ -8,8 +8,14 @@ start_kss: false
 css_default_checkout_arg: main
 install_perfstat: true
 install_perftest_agent: true
-install_server_css_populate: true
-install_server_css_flood: true
-start_auth_cache_webserver: false
+#install_server_css_populate: true  # replaced by install_server_solid_perftest_tools
+#install_server_css_flood: true  # replaced by install_server_solid_perftest_tools
+install_server_solid_perftest_tools: true  # ignored for now and thus always true!
+user_active_test_config_webserver: true
 css_default_generate_users: false
 css_default_generate_content: false
+install_client_scripts: true
+
+# Changing this can break things:
+#nodejs_version: 16
+nodejs_version: 18

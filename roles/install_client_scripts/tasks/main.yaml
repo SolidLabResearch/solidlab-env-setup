@@ -1,0 +1,22 @@
+- name: Install bin files for client
+  ansible.builtin.copy:
+    src: "files_client/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=rx
+  loop:
+    - flood.sh
+    - precache-flood.sh
+    - notification-subscribe.sh
+
+- name: Install etc files for client
+  ansible.builtin.copy:
+    src: "files_client/{{ item }}"
+    dest: "/usr/local/etc/{{ item }}"
+    owner: root
+    group: root
+    # writable by all!
+    mode: u=rw,g=rw,o=rw
+  loop:
+    - flood.env

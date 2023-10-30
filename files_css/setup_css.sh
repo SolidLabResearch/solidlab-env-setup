@@ -62,8 +62,6 @@ set -o allexport
 source "${env_file}"
 set +o allexport
 
-USERS_JSON="${etc_dir}/css_created_users.json"
-
 if [ -z "$SERVER_FACTORY" ]
 then
   echo 'Missing env var SERVER_FACTORY. Defaulting to SERVER_FACTORY="http"'
@@ -716,10 +714,17 @@ function install_css() {
 
 function generate_css_data() {
   local _CSS_DATA_DIR="$1"
+  local _USERS_JSON_FILE_OUT="$2"
 
   if [ -z "${_CSS_DATA_DIR}" ]
   then
     echo 'Missing arg _CSS_DATA_DIR'
+    exit 1
+  fi
+
+  if [ -z "${_USERS_JSON_FILE_OUT}" ]
+  then
+    echo 'Missing arg _USERS_JSON_FILE_OUT'
     exit 1
   fi
 
@@ -752,7 +757,7 @@ function generate_css_data() {
     start_css "${_used_port}" "${_used_proto}"
   fi
 
-  generate_ss_data $1 "${_used_port}" "${_used_proto}"
+  generate_ss_data $1 "${_used_port}" "${_used_proto}" "${_USERS_JSON_FILE_OUT}"
   _GEN_RET="$?"
 
   if "${_START_SS}"
@@ -945,34 +950,44 @@ fi
 
 echo '#########################################################'
 
-### # We can't do this anymore: we can't really detect version (unreleased branches have old version),
-### #   and commits can be backward incompatible for server data on "alpha version branches" (which we can't detect easily)
-### Dir with generated content for CSS version
-## CSS_VERSION_CLEAN_DATA_DIR="/srv/css-version-$VERSION_ID-${CONTENT_ID}/"
-# So we need to use a new data dir for each commit:
-#    (and thus we rename the var as well)
-CSS_COMMIT_CLEAN_DATA_DIR="/srv/css-commit-$NICK-${CONTENT_ID}/"
+# Dir to store metadata (account info and auth cache) for this NICK+CONTENT_ID
+CSS_NICKCONT_METADATA_DIR="/srv/css-commit-$NICK-${CONTENT_ID}/"
 
+# Datadir of empty CSS server for this NICK+CONTENT_ID
+CSS_NICKCONT_CLEAN_DATA_DIR="/srv/css-commit-$NICK-${CONTENT_ID}/"
 
-# Dir with generated content for CSS commit + cached auth file
-SERVER_DATA_CLEAN_AUTH_DIR="/srv/css-commit-$NICK-${CONTENT_ID}-clean-withauth/"
+# Datadir of empty CSS server for this NICK+CONTENT_ID + with internal account info (user and access tokens etc) matching auth-cache
+CSS_NICKCONT_CLEAN_AUTH_DIR="/srv/css-commit-$NICK-${CONTENT_ID}/"
+
 # Actual dir used by running CSS (which means it can get "dirty" during testing)
 SERVER_DATA_DIR="/srv/css-$NICK-${CONTENT_ID}/"
 
 # File(s) in which we make the authentication cache easily available
-SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE="${SERVER_DATA_CLEAN_AUTH_DIR}user0/auth-cache.json"
-SERVER_AUTH_CACHE_FILE="${SERVER_DATA_DIR}user0/auth-cache.json"
+CSS_NICKCONT_AUTH_CACHE_FILE="${CSS_NICKCONT_METADATA_DIR}auth-cache.json"
+CSS_NICKCONT_USER_JSON_FILE="${CSS_NICKCONT_METADATA_DIR}accounts.json"
+
+if [ ! -d "${CSS_NICKCONT_METADATA_DIR}" ]
+then
+  mkdir -p "${CSS_NICKCONT_METADATA_DIR}"
+fi
 
 if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
 then
   # Generate clean content dir
   LAST_USER_ID=$(( CONTENT_USER_COUNT - 1 ))
-  if [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}" ] || [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}/user${LAST_USER_ID}" ] || [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}/.internal" ] || [ -e "${CSS_COMMIT_CLEAN_DATA_DIR}/ERROR" ]
+  if [ ! -d "${CSS_NICKCONT_CLEAN_DATA_DIR}" ] || \
+     [ ! -d "${CSS_NICKCONT_CLEAN_DATA_DIR}/user${LAST_USER_ID}" ] || \
+     [ ! -d "${CSS_NICKCONT_CLEAN_DATA_DIR}/.internal" ] || \
+     [ -e "${CSS_NICKCONT_CLEAN_DATA_DIR}/ERROR" ]
   then
-    echo "Need to generate data for $NICK-${CONTENT_ID} in ${CSS_COMMIT_CLEAN_DATA_DIR}"
-    generate_css_data "${CSS_COMMIT_CLEAN_DATA_DIR}"
+    echo "Need to generate data for $NICK-${CONTENT_ID} in ${CSS_NICKCONT_CLEAN_DATA_DIR}"
+    if [ -e "${CSS_NICKCONT_USER_JSON_FILE}" ]
+    then
+      rm "${CSS_NICKCONT_USER_JSON_FILE}"
+    fi
+    generate_css_data "${CSS_NICKCONT_CLEAN_DATA_DIR}" "${CSS_NICKCONT_USER_JSON_FILE}"
   else
-    echo "Will use existing generated data for $NICK-${CONTENT_ID} in ${CSS_COMMIT_CLEAN_DATA_DIR}"
+    echo "Will use existing generated data for $NICK-${CONTENT_ID} in ${CSS_NICKCONT_CLEAN_DATA_DIR}"
   fi
 
   echo '#########################################################'
@@ -980,37 +995,40 @@ then
   if [ "${GENERATE_USERS,,}" == "true" ]
   then
     # Add auth cache to content dir
-    if [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}" ] || [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}/.internal/accounts" ] || [ ! -e "${SERVER_DATA_CLEAN_AUTH_DIR}" ] || [ -e "${SERVER_DATA_CLEAN_AUTH_DIR}/ERROR" ]
+    if [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}" ] || \
+       [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}/.internal/accounts" ] || \
+       [ ! -e "${CSS_NICKCONT_AUTH_CACHE_FILE}" ] || \
+       [ -e "${SERVER_DATA_CLEAN_AUTH_DIR}/ERROR" ]
     then
-      if [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}" ]
+      if [ ! -d "${CSS_NICKCONT_CLEAN_DATA_DIR}" ]
       then
         echo 'Fatal: No CSS dir clean copy available. (Should have been created earlier by this script)'
         exit 1
       fi
 
-      echo "Need to make an auth-cache for $NICK-${CONTENT_ID} in ${SERVER_DATA_CLEAN_AUTH_DIR}"
-      echo "Filling '${SERVER_DATA_CLEAN_AUTH_DIR}' with clean data for CSS commit $NICK"
-      rm -rf "${SERVER_DATA_CLEAN_AUTH_DIR}"
-      cp -a "${CSS_COMMIT_CLEAN_DATA_DIR}" "${SERVER_DATA_CLEAN_AUTH_DIR}"
+      echo "Need to make an auth-cache for $NICK-${CONTENT_ID} in ${CSS_NICKCONT_AUTH_CACHE_FILE} with server dir ${CSS_NICKCONT_CLEAN_AUTH_DIR}"
+      echo "Filling '${CSS_NICKCONT_CLEAN_AUTH_DIR}' with clean data for CSS commit $NICK"
+      rm -rf "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
+      cp -a "${CSS_NICKCONT_CLEAN_DATA_DIR}" "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
       # copied all files, including hidden files and CSS server internal data
 
-      collect_access_tokens "${SERVER_DATA_CLEAN_AUTH_DIR}" "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}"
+      collect_access_tokens "${CSS_NICKCONT_CLEAN_AUTH_DIR}" "${CSS_NICKCONT_AUTH_CACHE_FILE}"
 
-      du -hs "${CSS_COMMIT_CLEAN_DATA_DIR}" "${SERVER_DATA_CLEAN_AUTH_DIR}" || echo ''
+      du -hs "${CSS_NICKCONT_CLEAN_DATA_DIR}" "${CSS_NICKCONT_CLEAN_AUTH_DIR}" || echo ''
     else
-      echo "Will use exiting auth-cache for $NICK-${CONTENT_ID} in ${SERVER_DATA_CLEAN_AUTH_DIR}"
+      echo "Will use exiting auth-cache for $NICK-${CONTENT_ID} in ${CSS_NICKCONT_CLEAN_DATA_DIR} with server dir ${CSS_NICKCONT_CLEAN_AUTH_DIR}"
     fi
   else
-    if [ ! -d "${SERVER_DATA_CLEAN_AUTH_DIR}" ]
+    if [ ! -d "${CSS_NICKCONT_CLEAN_AUTH_DIR}" ]
     then
-      if [ ! -d "${CSS_COMMIT_CLEAN_DATA_DIR}" ]
+      if [ ! -d "${CSS_NICKCONT_CLEAN_DATA_DIR}" ]
       then
         echo 'Fatal: No CSS dir clean copy available. (Should have been created earlier by this script)'
         exit 1
       fi
 
-      echo "Creating clean '${SERVER_DATA_CLEAN_AUTH_DIR}' for CSS commit $NICK"
-      cp -a "${CSS_COMMIT_CLEAN_DATA_DIR}" "${SERVER_DATA_CLEAN_AUTH_DIR}"
+      echo "Creating clean '${CSS_NICKCONT_CLEAN_AUTH_DIR}' for CSS commit $NICK"
+      cp -a "${CSS_NICKCONT_CLEAN_DATA_DIR}" "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
     fi
   fi
 fi
@@ -1030,7 +1048,7 @@ if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
 then
   echo "Resetting CSS data dir at ${SERVER_DATA_DIR} to clean version"
 
-  if [ -d "${SERVER_DATA_CLEAN_AUTH_DIR}" ]
+  if [ -d "${CSS_NICKCONT_CLEAN_AUTH_DIR}" ]
   then
     if [ -d "${SERVER_DATA_DIR}" ]
     then
@@ -1048,11 +1066,11 @@ then
       echo -n 'Mounted /srv/ tmpfs dirs:'
       grep tmpfs '/proc/mounts' | grep '/srv/'
       shopt -s dotglob  # include hidden files in *
-      cp -a "${SERVER_DATA_CLEAN_AUTH_DIR}/"* "${SERVER_DATA_DIR}"
+      cp -a "${CSS_NICKCONT_CLEAN_AUTH_DIR}/"* "${SERVER_DATA_DIR}"
       shopt -u dotglob
     else
       # file
-      cp -a "${SERVER_DATA_CLEAN_AUTH_DIR}" "${SERVER_DATA_DIR}"
+      cp -a "${CSS_NICKCONT_CLEAN_AUTH_DIR}" "${SERVER_DATA_DIR}"
     fi
   else
     echo 'Fatal: No CSS dir clean copy available. (Should have been created earlier by this script)'
@@ -1166,7 +1184,11 @@ then
   # we can only add the users and data now that the actual CSS has started
   echo "Need to generate data for $NICK-${CONTENT_ID} in ${CSS_COMMIT_CLEAN_DATA_DIR}"
   # this uses :3000, but we might not be running on that port. So this will probably fail.
-  generate_css_data "${CSS_COMMIT_CLEAN_DATA_DIR}"
+    if [ -e "${CSS_NICKCONT_USER_JSON_FILE}" ]
+    then
+      rm "${CSS_NICKCONT_USER_JSON_FILE}"
+    fi
+  generate_css_data "${CSS_COMMIT_CLEAN_DATA_DIR}" "${CSS_NICKCONT_USER_JSON_FILE}"
 fi
 
 #########################################################
@@ -1180,36 +1202,33 @@ then
   # make sure authentication cache can be downloaded using nginx
   echo "Configure and start authentication cache webserver at 8888"
 
-  echo "Making sure that auth cache ${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE} is up to date"
+  echo "Making sure that auth cache ${CSS_NICKCONT_AUTH_CACHE_FILE} is up to date"
   css-flood --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
            --authenticate --authenticateCache all --filename dummy.txt \
            --steps 'loadAC,fillAC,validateAC,saveAC,testRequest' \
            --ensure-auth-expiration 600 \
-           --authCacheFile "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}" || touch "${SERVER_DATA_CLEAN_AUTH_DIR}/ERROR"
+           --authCacheFile "${CSS_NICKCONT_AUTH_CACHE_FILE}" || touch "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR"
 
-  if [ -e "${SERVER_DATA_CLEAN_AUTH_DIR}/ERROR" ]
+  if [ -e "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR" ]
   then
-    echo "Error while testing auth cache! Will re-make auth-cache for $NICK-${CONTENT_ID} in ${SERVER_DATA_CLEAN_AUTH_DIR}"
-    rm -v "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}"
+    echo "Error while testing auth cache! Will re-make auth-cache for $NICK-${CONTENT_ID} in ${CSS_NICKCONT_CLEAN_AUTH_DIR}"
+    rm -v "${CSS_NICKCONT_AUTH_CACHE_FILE}"
 
     echo "Collecting access tokens for all users"
     css-flood --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
              --authenticate --authenticateCache all --filename dummy.txt \
              --steps 'fillAC,validateAC,saveAC,testRequest' \
              --ensure-auth-expiration 600 \
-             --authCacheFile "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}" || touch "${SERVER_DATA_CLEAN_AUTH_DIR}/ERROR"
+             --authCacheFile "${CSS_NICKCONT_AUTH_CACHE_FILE}" || touch "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR"
   fi
-
-  cp -v "${SERVER_DATA_CLEAN_AUTH_AUTH_CACHE_FILE}" "${SERVER_AUTH_CACHE_FILE}"
-  SERVER_AUTH_CACHE_FILE_DIR=$(dirname "${SERVER_AUTH_CACHE_FILE}")
-
-  sed -e "s#^WorkingDirectory=.*#WorkingDirectory=${SERVER_AUTH_CACHE_FILE_DIR}#" \
-      -i /etc/systemd/system/auth-cache-webserver.service
-  systemctl daemon-reload
-  systemctl restart auth-cache-webserver
 
   set -e
 fi
+
+# Make the auth cache available
+cp -v "${CSS_NICKCONT_AUTH_CACHE_FILE}" '/usr/local/share/active_test_config/auth-cache.json'
+#Make the account info available
+cp -v "${CSS_NICKCONT_USER_JSON_FILE}" '/usr/local/share/active_test_config/accounts.json'
 
 #########################################################
 

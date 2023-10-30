@@ -23,11 +23,14 @@
     - role: install_perftest_agent
       tags: setup, perftest_agent
     - role: nodejs
-      tags: setup
-    - role: css_populate
+      tags: setup, nodejs
+#    - role: css_populate
+#      tags: setup,solidlab_tools
+#    - role: css_flood
+#      tags: setup,solidlab_tools
+    - role: solid_perftest_tools
       tags: setup,solidlab_tools
-    - role: css_flood
-      tags: setup,solidlab_tools
+      #when: install_server_solid_perftest_tools
 - hosts: ss_servers
   become: yes
   vars_files:
@@ -46,7 +49,7 @@
       when: install_kss
       tags: setup
     - role: install_common_ss
-      tags: ['css', 'kss']
+      tags: ['css', 'kss', 'common_ss']
     - role: install_css
       when: install_css
       tags: css
@@ -100,3 +103,11 @@
         flat: yes
       when: ( start_kss or start_css )
       tags: post
+- hosts: clients
+  become: yes
+  vars_files:
+    - ansible-variables.yaml
+  roles:
+    - role: install_client_scripts
+      when: install_client_scripts
+      tags: install_client_scripts

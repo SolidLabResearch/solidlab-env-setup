@@ -63,23 +63,24 @@ function generate_ss_data() {
   local _SS_DATA_DIR="$1"
   local _SS_PORT="$2"
   local _SS_PROTO="$3"
-  local _USERS_JSON_FILE="$4"
+  local _USERS_JSON_FILE_OUT="$4"
+  local _USERS_JSON_FILE_IN="$5"  # optional
 
   if [ -z "${_SS_DATA_DIR}" ]
   then
-     echo 'generate_ss_data requires data dir as first argument'
+     echo 'generate_ss_data requires data dir as 1st argument'
      exit 1
   fi
 
   if [ -z "${_SS_PORT}" ]
   then
-     echo 'generate_ss_data requires port as second argument'
+     echo 'generate_ss_data requires port as 2nd argument'
      exit 1
   fi
 
   if [ -z "${_SS_PROTO}" ]
   then
-     echo 'generate_ss_data requires proto (http or https) as third argument'
+     echo 'generate_ss_data requires proto (http or https) as 3rd argument'
      exit 1
   fi
 
@@ -89,11 +90,16 @@ function generate_ss_data() {
      exit 1
   fi
 
+  if [ -z "${_USERS_JSON_FILE_OUT}" ]
+  then
+     echo "generate_ss_data requires USERS_JSON_FILE_OUT as 4th argument"
+     exit 1
+  fi
+
   #
   # Input env vars:
   #   $SS_PUBLIC_DNS_NAME
   #   $data_dir
-  #   $USERS_JSON  where to store the users.json file containing the generated users (or existing users)
   #
   #   #for content generation config:
   #   ${CONTENT_USER_COUNT}
@@ -185,22 +191,22 @@ function generate_ss_data() {
     ACCOUNT_ARGS="--accounts USE_EXISTING"
   fi
 
-  if [ -z "${_USERS_JSON_FILE}" ]
+  if [ -z "${_USERS_JSON_FILE_IN}" ]
   then
-    ACCOUNT_ARGS="${ACCOUNT_ARGS} --account-source TEMPLATE --account-source-count ${CONTENT_USER_COUNT}"
+    ACCOUNT_ARGS="${ACCOUNT_ARGS} --account-source TEMPLATE --account-source-count ${CONTENT_USER_COUNT} --account-template-create-account-uri ${_SS_PROTO}://${SS_PUBLIC_DNS_NAME}:${_SS_PORT}/"
   else
-    ACCOUNT_ARGS="${ACCOUNT_ARGS} --account-source FILE --account-source-file ${_USERS_JSON_FILE}"
+    ACCOUNT_ARGS="${ACCOUNT_ARGS} --account-source FILE --account-source-file ${_USERS_JSON_FILE_IN}"
   fi
 
   set -x
-  css-populate --url "${_SS_PROTO}://${SS_PUBLIC_DNS_NAME}:${_SS_PORT}" \
+  solid-populate \
       ${ACCOUNT_ARGS} \
       ${AUTHORIZATION_ARG} \
       --dir-depth "${GENERATED_FILES_NEST_DEPTH}" \
       ${CONTENT_VAR_SIZE_ARG} \
       ${CONTENT_FIXED_SIZE_ARG} \
       ${CONTENT_RDF_ARG} \
-      --user-json-out "${USERS_JSON}" \
+      --user-json-out "${_USERS_JSON_FILE_OUT}" \
        || touch "${_SS_DATA_DIR}/ERROR"
   set +x
 

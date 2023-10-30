@@ -9,14 +9,30 @@
     - provide_certs.sh
   when: ss_use_https
 
-- name: Install auth-cache-webserver Systemd Services
-  ansible.builtin.copy:
-    src: "files_ss/auth-cache-webserver.service"
-    dest: "/etc/systemd/system/auth-cache-webserver.service"
-    owner: root
-    group: root
-    mode: u=rw,g=r,o=r
-  when: start_auth_cache_webserver
+- name: Install active-test-config-webserver
+  when: user_active_test_config_webserver
+  block:
+    - name: Install active-test-config-webserver Systemd Services
+      ansible.builtin.copy:
+        src: "files_ss/active-test-config-webserver.service"
+        dest: "/etc/systemd/system/active-test-config-webserver.service"
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+
+    - name: Create active-test-config-webserver dir
+      ansible.builtin.copy:
+        path: /usr/local/share/active_test_config/
+        state: directory
+        # Everyone can read and write here
+        mode: u=rwx,g=rwx,o=rwx
+
+    - name: Start active-test-config-webserver
+      ansible.builtin.systemd:
+        state: started
+        enabled: true
+        daemon_reload: true
+        name: active-test-config-webserver
 
 - name: Install Exe generate_content.sh
   ansible.builtin.copy:

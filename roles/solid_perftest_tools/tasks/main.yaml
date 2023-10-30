@@ -1,0 +1,37 @@
+- name: clone solid-perftest-tools
+  ansible.builtin.git:
+#    repo: https://github.com/SolidLabResearch/solid-perftest-tools.git
+    repo: git@gitlab.ilabt.imec.be:wvdemeer/solid-perftest-tools.git
+    dest: /usr/local/src/solid-perftest-tools
+
+- name: Install solid-perftest-tools
+  community.general.npm:
+    path: /usr/local/src/solid-perftest-tools
+
+- name: "Build and link solid-perftest-tools"
+  ansible.builtin.shell: |
+    #!/bin/bash -e
+    cd /usr/local/src/solid-perftest-tools
+    npm run build
+    npm config set prefix "/usr/local"
+    npm link
+
+# for css-populate
+- name: 'Copy dummy RDF'
+  ansible.builtin.copy:
+    src: "files_all/infobox-properties_lang=nl__head75000_10MB.nt.gz"
+    dest: "/usr/local/share/infobox-properties_lang=nl__head75000_10MB.nt.gz"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+- name: 'Decompress dummy RDF'
+  ansible.builtin.shell: |
+    #!/bin/bash -e
+    
+    gzip --to-stdout -d "infobox-properties_lang=nl__head75000_10MB.nt.gz" > "infobox-properties_lang=nl__head75000_10MB.nt"
+    head -n 7500 "infobox-properties_lang=nl__head75000_10MB.nt" > "infobox-properties_lang=nl__head7500_1MB.nt"
+    head -n 750 "infobox-properties_lang=nl__head75000_10MB.nt" > "infobox-properties_lang=nl__head750_100kB.nt"
+  args:
+    chdir: /usr/local/share/
+    creates: /usr/local/share/infobox-properties_lang=nl__head75000_10MB.nt

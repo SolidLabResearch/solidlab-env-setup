@@ -1,11 +1,16 @@
+- name: Check nodejs version
+  ansible.builtin.fail:
+    msg: "The nodejs version requested {{ nodejs_version }} is not the supported by this role."
+  when: (nodejs_version != 16) and (nodejs_version != 18)
+
 - name: "Add nodejs apt key"
   ansible.builtin.apt_key:
     url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
     state: present
 
-- name: "Add nodejs 16.x ppa for apt repo"
+- name: "Add nodejs {{ nodejs_version }}.x ppa for apt repo"
   ansible.builtin.apt_repository:
-    repo: deb https://deb.nodesource.com/node_16.x {{ ansible_distribution_release }} main
+    repo: deb https://deb.nodesource.com/node_{{ nodejs_version }}.x {{ ansible_distribution_release }} main
     update_cache: yes
 
 - name: Prefer deb.nodesource.com over official
@@ -16,20 +21,26 @@
       Pin-Priority: 1001
     dest: /etc/apt/preferences.d/prefer-nodesource
 
-- name: "Install nodejs 16"
+- name: "Install nodejs {{ nodejs_version }}"
   ansible.builtin.apt:
     name:
       - nodejs
-    state: present
+    state: latest
+#    state: present
 
 - name: Fetch nodejs version
   ansible.builtin.shell: 'node --version'
-  register: nodejs_version
+  register: actual_nodejs_version
 
-- name: Check nodejs version
+- name: Check nodejs version 16
   ansible.builtin.fail:
-    msg: "The nodejs version install {{ nodejs_version }} is not the expected version 16."
-  when: (not (nodejs_version.stdout | regex_search("^16."))) and (not (nodejs_version.stdout | regex_search("^v16.")))
+    msg: "The nodejs version installed {{ actual_nodejs_version.stdout }} is not the expected version {{ nodejs_version }}."
+  when: ((nodejs_version == 16) and (not (actual_nodejs_version.stdout | regex_search("^16."))) and (not (actual_nodejs_version.stdout | regex_search("^v16."))))
+
+- name: Check nodejs version 18
+  ansible.builtin.fail:
+    msg: "The nodejs version installed {{ actual_nodejs_version.stdout }} is not the expected version {{ nodejs_version }}."
+  when: ((nodejs_version == 18) and (not (actual_nodejs_version.stdout | regex_search("^18."))) and (not (actual_nodejs_version.stdout | regex_search("^v18."))))
 
 - name: Install "typescript" node.js package.
   community.general.npm:
