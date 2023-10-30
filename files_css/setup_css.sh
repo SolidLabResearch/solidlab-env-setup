@@ -1232,10 +1232,14 @@ cp -v "${CSS_NICKCONT_USER_JSON_FILE}" '/usr/local/share/active_test_config/acco
 
 #########################################################
 
-echo '******************************************************'
-echo "* $SERVER_UNDER_TEST is configured and running for your Experiment *"
+echo '**************************************************************************'
+echo "* $SERVER_UNDER_TEST is configured and running for your Experiment "
 echo "* at ${GLOBAL_BASE_URL} "
-echo '******************************************************'
+echo "* "
+echo "* Downloads to get started with the test server: "
+echo "*   - http://${SS_PUBLIC_DNS_NAME}:8888/accounts.json "
+echo "*   - http://${SS_PUBLIC_DNS_NAME}:8888/auth-cache.json "
+echo '**************************************************************************'
 
 echo "${GLOBAL_BASE_URL}" > "${share_dir}ss_url"
 

@@ -21,9 +21,11 @@
         mode: u=rw,g=r,o=r
 
     - name: Create active-test-config-webserver dir
-      ansible.builtin.copy:
+      ansible.builtin.file:
         path: /usr/local/share/active_test_config/
         state: directory
+        owner: root
+        group: root
         # Everyone can read and write here
         mode: u=rwx,g=rwx,o=rwx
 
