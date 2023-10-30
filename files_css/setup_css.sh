@@ -227,7 +227,8 @@ SERVER_SOURCE_DIR="/usr/local/src/css-$NICK/"
 INSTALL_PREFIX="/usr/local/css-$NICK"
 CONFIG_DIR="/etc/css/$NICK"
 CONFIG_FILE="${CONFIG_DIR}/perftest.json"
-SERVER_NEUTRAL_CONFIG_FILE="/usr/local/src/css-$NICK/config/perftest-$AUTHORIZATION.json"
+SERVER_NEUTRAL_HTTP_CONFIG_FILE="/usr/local/src/css-$NICK/config/perftest-$AUTHORIZATION-http.json"
+SERVER_NEUTRAL_HTTPS_CONFIG_FILE="/usr/local/src/css-$NICK/config/perftest-$AUTHORIZATION-https.json"
 
 HTTPS_CERT_FILE="${etc_dir}/css/server_cert.pem"
 HTTPS_KEY_FILE="${etc_dir}/css/server_key.pem"
@@ -411,7 +412,8 @@ function create_neutral_config() {
   #   $GIT_REPO_URL
   #   $GIT_CHECKOUT_ARG
   #   $SERVER_SOURCE_DIR
-  #   $SERVER_NEUTRAL_CONFIG_FILE
+  #   SERVER_NEUTRAL_HTTP_CONFIG_FILE
+  #   SERVER_NEUTRAL_HTTPS_CONFIG_FILE
   #   $INSTALL_PREFIX
   #   $EXE
   #   $HTTPS_CERT_FILE
@@ -466,7 +468,7 @@ function create_neutral_config() {
      exit 1
   fi
 
-  jq '."@graph"[].comment = "SolidLab PerfTest neutral config with AUTHORIZATION='"${AUTHORIZATION}"' LDP_AUTHORIZATION='"${LDP_AUTHORIZATION}"' AUXILIARY='"${AUXILIARY}"'"
+  jq '."@graph"[].comment = "SolidLab PerfTest neutral HTTP config with AUTHORIZATION='"${AUTHORIZATION}"' LDP_AUTHORIZATION='"${LDP_AUTHORIZATION}"' AUXILIARY='"${AUXILIARY}"'"
         | (..|strings|select(contains("http/server-factory/"))) |= sub("/[\\w._-]+$"; "/http.json")
         | (..|strings|select(contains("identity/registration/"))) |= sub("/[\\w._-]+$"; "/enabled.json")
         | (..|strings|select(contains("identity/interaction/"))) |= sub("/[\\w._-]+$"; "/default.json")
@@ -476,9 +478,23 @@ function create_neutral_config() {
         | (..|strings|select(contains("util/auxiliary/"))) |= sub("/[\\w._-]+$"; "/'"${AUXILIARY}"'.json")
         ' \
      < "${CSS_CONFIG_BASE}" \
-     > "${SERVER_NEUTRAL_CONFIG_FILE}"
-  echo 'DEBUG neutral config:'
-  grep -H 'server-factory' "${SERVER_NEUTRAL_CONFIG_FILE}"
+     > "${SERVER_NEUTRAL_HTTP_CONFIG_FILE}"
+
+  jq '."@graph"[].comment = "SolidLab PerfTest neutral HTTPS config with AUTHORIZATION='"${AUTHORIZATION}"' LDP_AUTHORIZATION='"${LDP_AUTHORIZATION}"' AUXILIARY='"${AUXILIARY}"'"
+        | (..|strings|select(contains("http/server-factory/"))) |= sub("/[\\w._-]+$"; "/https.json")
+        | (..|strings|select(contains("identity/registration/"))) |= sub("/[\\w._-]+$"; "/enabled.json")
+        | (..|strings|select(contains("identity/interaction/"))) |= sub("/[\\w._-]+$"; "/default.json")
+        | (..|strings|select(contains("http/middleware/websockets.json"))) |= sub("/[\\w._-]+$"; "/no-websockets.json")
+        | (..|strings|select(contains("http/notifications/"))) |= sub("/[\\w._-]+$"; "/disabled.json")
+        | (..|strings|select(contains("ldp/authorization/"))) |= sub("/[\\w._-]+$"; "/'"${LDP_AUTHORIZATION}"'.json")
+        | (..|strings|select(contains("util/auxiliary/"))) |= sub("/[\\w._-]+$"; "/'"${AUXILIARY}"'.json")
+        ' \
+     < "${CSS_CONFIG_BASE}" \
+     > "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}"
+  echo 'DEBUG neutral config http:'
+  grep -H 'server-factory' "${SERVER_NEUTRAL_HTTP_CONFIG_FILE}"
+  echo 'DEBUG neutral config https:'
+  grep -H 'server-factory' "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}"
 }
 
 ##################################################################################################################
@@ -492,7 +508,8 @@ function install_css() {
   #   $GIT_REPO_URL
   #   $GIT_CHECKOUT_ARG
   #   $SERVER_SOURCE_DIR
-  #   $SERVER_NEUTRAL_CONFIG_FILE
+  #   $SERVER_NEUTRAL_HTTP_CONFIG_FILE
+  #   $SERVER_NEUTRAL_HTTPS_CONFIG_FILE
   #   $INSTALL_PREFIX
   #   $EXE
   #   HTTPS_CERT_FILE
@@ -723,13 +740,19 @@ function generate_css_data() {
   then
     _START_SS=false
   fi
+
+#  local _used_port=3000
+#  local _used_proto=http
+  local _used_port="${USED_CSS_PORT}"
+  local _used_proto="${HTTP_PROTO_PREFIX}"
+
   if "${_START_SS}"
   then
-    update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000 true
-    start_css 3000 http
+    update_css_service_file "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}" "${_CSS_DATA_DIR}" "${_used_port}" false
+    start_css "${_used_port}" "${_used_proto}"
   fi
 
-  generate_ss_data $1
+  generate_ss_data $1 "${_used_port}" "${_used_proto}"
   _GEN_RET="$?"
 
   if "${_START_SS}"
@@ -748,7 +771,8 @@ function collect_access_tokens() {
   #
   # Input env vars:
   #   $CSS_PUBLIC_DNS_NAME
-  #   $SERVER_NEUTRAL_CONFIG_FILE
+  #   $SERVER_NEUTRAL_HTTP_CONFIG_FILE
+  #   $SERVER_NEUTRAL_HTTPS_CONFIG_FILE
 
   # Parameters:
   #   $1 = running CSS server data dir
@@ -762,11 +786,16 @@ function collect_access_tokens() {
     exit 1
   fi
 
-  update_css_service_file "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CSS_DATA_DIR}" 3000 true
-  start_css 3000 http
+#  local _used_port=3000
+#  local _used_proto=http
+  local _used_port="${USED_CSS_PORT}"
+  local _used_proto="${HTTP_PROTO_PREFIX}"
+
+  update_css_service_file "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}" "${_CSS_DATA_DIR}" "${_used_port}" false
+  start_css "${_used_port}" "${_used_proto}"
 
   echo "Collecting access tokens for all users"
-  css-flood --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+  css-flood --url "${_used_proto}://${SS_PUBLIC_DNS_NAME}:${_used_port}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
            --authenticate --authenticateCache all --filename dummy.txt \
            --steps 'loadAC,fillAC,validateAC,saveAC' \
            --ensure-auth-expiration 600 \

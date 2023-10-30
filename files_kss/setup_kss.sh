@@ -338,7 +338,7 @@ function generate_kss_data() {
   # Users have already been generated
   GENERATE_USERS=false
 
-  generate_ss_data "/tmp/" "${USED_SS_PORT}" "${KSS_USERS_JSON_FILE}"
+  generate_ss_data "/tmp/" "${USED_SS_PORT}" https "${KSS_USERS_JSON_FILE}"
   _GEN_RET="$?"
 
   return ${_GEN_RET}

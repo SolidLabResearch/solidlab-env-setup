@@ -25,9 +25,9 @@
     - role: nodejs
       tags: setup
     - role: css_populate
-      tags: setup
+      tags: setup,solidlab_tools
     - role: css_flood
-      tags: setup
+      tags: setup,solidlab_tools
 - hosts: ss_servers
   become: yes
   vars_files:

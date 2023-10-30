@@ -6,9 +6,16 @@
 
 - name: "Install css-populate"
   community.general.npm:
-    global: true
     path: /usr/local/src/css-populate
   when: install_server_css_populate
+
+- name: "Build and link css-populate"
+  ansible.builtin.shell: |
+    #!/bin/bash -e
+    cd /usr/local/src/css-populate
+    npm run build
+    npm config set prefix "/usr/local"
+    npm link
 
 - name: 'Copy dummy RDF'
   ansible.builtin.copy:

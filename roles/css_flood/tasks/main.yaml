@@ -7,6 +7,13 @@
 
 - name: Install css-flood
   community.general.npm:
-    global: true
     path: /usr/local/src/css-flood
   when: install_server_css_flood
+
+- name: "Build and link css-flood"
+  ansible.builtin.shell: |
+    #!/bin/bash -e
+    cd /usr/local/src/css-flood
+    npm run build
+    npm config set prefix "/usr/local"
+    npm link

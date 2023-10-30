@@ -62,7 +62,32 @@ function generate_ss_data() {
   #   $2 = port the SS is listening on
   local _SS_DATA_DIR="$1"
   local _SS_PORT="$2"
-  local _USERS_JSON_FILE="$3"
+  local _SS_PROTO="$3"
+  local _USERS_JSON_FILE="$4"
+
+  if [ -z "${_SS_DATA_DIR}" ]
+  then
+     echo 'generate_ss_data requires data dir as first argument'
+     exit 1
+  fi
+
+  if [ -z "${_SS_PORT}" ]
+  then
+     echo 'generate_ss_data requires port as second argument'
+     exit 1
+  fi
+
+  if [ -z "${_SS_PROTO}" ]
+  then
+     echo 'generate_ss_data requires proto (http or https) as third argument'
+     exit 1
+  fi
+
+  if [ ! -d "${_SS_DATA_DIR}" ]
+  then
+     echo "generate_ss_data got non existing data dir as first argument: '${_SS_DATA_DIR}'"
+     exit 1
+  fi
 
   #
   # Input env vars:
@@ -153,7 +178,7 @@ function generate_ss_data() {
   fi
 
   ACCOUNT_ARGS=""
-  if [ "${GENERATE_USERS,,}" != "true" ]
+  if [ "${GENERATE_USERS,,}" == "true" ]
   then
     ACCOUNT_ARGS="--accounts CREATE"
   else
@@ -168,7 +193,7 @@ function generate_ss_data() {
   fi
 
   set -x
-  css-populate --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:${_SS_PORT}" \
+  css-populate --url "${_SS_PROTO}://${SS_PUBLIC_DNS_NAME}:${_SS_PORT}" \
       ${ACCOUNT_ARGS} \
       ${AUTHORIZATION_ARG} \
       --dir-depth "${GENERATED_FILES_NEST_DEPTH}" \
