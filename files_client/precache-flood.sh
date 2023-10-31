@@ -21,8 +21,14 @@ else
     export PATH="/usr/local/bin:$PATH"
 fi
 
-CLIENT_PUBLIC_DNS_NAME="$(cat /etc/client_dns_name)"
-SS_PUBLIC_DNS_NAME="$(cat /etc/ss_dns_name)"
+#CLIENT_PUBLIC_DNS_NAME="$(cat /etc/client_dns_name)"
+
+if [ -z "${ATC_URLS}" ]
+then
+  echo "ATC_URLS must contain at least one active test config URL"
+  exit 1
+fi
+
 
 if [ "$SERVER_UNDER_TEST" != "css" ] && [ "$SERVER_UNDER_TEST" != "kss" ]
 then
@@ -48,7 +54,21 @@ then
   rm "$OUTPUT_FILE"
 fi
 
-SERVER_URL="https://${CSS_PUBLIC_DNS_NAME}"
+AUTH_CACHE_FILE="/tmp/auth-cache.json"
+ACCOUNTS_FILE="/tmp/accounts.json"
+
+for ATC_URL in ${ATC_URLS}
+do
+  # TODO support multiple servers
+  #      requires merging accounts.json and auth-cache.json
+  echo "Fetching active test server info from ${ATC_URL}"
+
+  curl "${ATC_URL}/accounts.json" > "${ACCOUNTS_FILE}"
+  echo "  Downloaded auth-cache.json from ${ATC_URL}/auth-cache.json: $(ls -l ${AUTH_CACHE_FILE})"
+
+  curl "${ATC_URL}/auth-cache.json" > "${AUTH_CACHE_FILE}"
+  echo "  Downloaded accounts.json from ${ATC_URL}/accounts.json: $(ls -l ${ACCOUNTS_FILE})"
+done
 
 AUTH_COMMANDLINE=''
 if [ "$AUTHENTICATED_CALLS" == 'true' ]
@@ -103,7 +123,7 @@ echo
 set -x
 /usr/bin/timeout -v -k '15s' --signal=INT "${SOLID_FLOOD_TIMEOUT}s" \
              /usr/local/bin/solid-flood \
-                  --url "$SERVER_URL" \
+                  --accounts USE_EXISTING --account-source FILE --account-source-file ${ACCOUNTS_FILE} \
                   --steps 'loadAC,fillAC,saveAC' \
                   --duration ${SOLID_FLOOD_DURATION} \
                   --userCount ${SOLID_FLOOD_USER_COUNT} \
@@ -126,7 +146,7 @@ echo
 set -x
 /usr/bin/timeout -v -k '15s' --signal=INT "${SOLID_FLOOD_TIMEOUT}s" \
              /usr/local/bin/solid-flood \
-                  --url "$SERVER_URL" \
+                  --accounts USE_EXISTING --account-source FILE --account-source-file ${ACCOUNTS_FILE} \
                   --steps 'loadAC,validateAC,testRequest' \
                   --duration ${SOLID_FLOOD_DURATION} \
                   --userCount ${SOLID_FLOOD_USER_COUNT} \

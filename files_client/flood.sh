@@ -63,8 +63,12 @@ do
   # TODO support multiple servers
   #      requires merging accounts.json and auth-cache.json
   echo "Fetching active test server info from ${ATC_URL}"
+
   curl "${ATC_URL}/accounts.json" > "${ACCOUNTS_FILE}"
+  echo "  Downloaded auth-cache.json from ${ATC_URL}/auth-cache.json: $(ls -l ${AUTH_CACHE_FILE})"
+
   curl "${ATC_URL}/auth-cache.json" > "${AUTH_CACHE_FILE}"
+  echo "  Downloaded accounts.json from ${ATC_URL}/accounts.json: $(ls -l ${ACCOUNTS_FILE})"
 done
 
 if [ "$FLOOD_TOOL" == 'ARTILLERY' ]
@@ -192,10 +196,10 @@ then
   then
     rm "$OUTPUT_FILE"
   fi
-  CSS_FLOOD_REPORT="${base_dir}/css-flood-report.json"
-  if [ -e "$CSS_FLOOD_REPORT" ]
+  SOLID_FLOOD_REPORT="${base_dir}/css-flood-report.json"
+  if [ -e "$SOLID_FLOOD_REPORT" ]
   then
-    rm "$CSS_FLOOD_REPORT"
+    rm "$SOLID_FLOOD_REPORT"
   fi
 
   AUTH_COMMANDLINE=''
@@ -213,51 +217,51 @@ then
     echo "Will use authenticateCache ${AUTHENTICATE_CACHE}"
   fi
 
-  if [ -z "${CSS_FLOOD_SINGLE_TIMEOUT_MS}" ]
+  if [ -z "${SOLID_FLOOD_SINGLE_TIMEOUT_MS}" ]
   then
-    CSS_FLOOD_SINGLE_TIMEOUT_MS=4000
+    SOLID_FLOOD_SINGLE_TIMEOUT_MS=4000
   fi
 
   STOP_CONDITION_COMMANDLINE="--error "
-  if [ -z "${CSS_FLOOD_STOP_CONDITION}" ] || [ "${CSS_FLOOD_STOP_CONDITION}" = 'time' ]
+  if [ -z "${SOLID_FLOOD_STOP_CONDITION}" ] || [ "${SOLID_FLOOD_STOP_CONDITION}" = 'time' ]
   then
     # default
-    STOP_CONDITION_COMMANDLINE="--duration ${CSS_FLOOD_DURATION} "
-  elif [ "${CSS_FLOOD_STOP_CONDITION}" = 'count' ]
+    STOP_CONDITION_COMMANDLINE="--duration ${SOLID_FLOOD_DURATION} "
+  elif [ "${SOLID_FLOOD_STOP_CONDITION}" = 'count' ]
   then
-    STOP_CONDITION_COMMANDLINE="--fetchCount ${CSS_FLOOD_FILECOUNT} "
+    STOP_CONDITION_COMMANDLINE="--fetchCount ${SOLID_FLOOD_FILECOUNT} "
   else
-    echo "Unsupported CSS_FLOOD_STOP_CONDITION='${CSS_FLOOD_STOP_CONDITION}'. Must be 'time' or 'count'."
+    echo "Unsupported SOLID_FLOOD_STOP_CONDITION='${SOLID_FLOOD_STOP_CONDITION}'. Must be 'time' or 'count'."
     exit 1
   fi
 
-  if [ -z "${CSS_FLOOD_SCENARIO}" ]
+  if [ -z "${SOLID_FLOOD_SCENARIO}" ]
   then
     SCENARIO_COMMANDLINE="--scenario BASIC"
   else
-    SCENARIO_COMMANDLINE="--scenario ${CSS_FLOOD_SCENARIO}"
+    SCENARIO_COMMANDLINE="--scenario ${SOLID_FLOOD_SCENARIO}"
   fi
 
-  if [ "${CSS_FLOOD_HTTP_VERB}" = 'PUT' ]
+  if [ "${SOLID_FLOOD_HTTP_VERB}" = 'PUT' ]
   then
-    if [ "${CSS_FLOOD_STOP_CONDITION}" = 'time' ]
+    if [ "${SOLID_FLOOD_STOP_CONDITION}" = 'time' ]
     then
        # Always the same file to PUT
-       VERB_COMMANDLINE="--verb PUT --uploadSizeByte ${CSS_FLOOD_UPLOAD_FILESIZE} "
+       VERB_COMMANDLINE="--verb PUT --uploadSizeByte ${SOLID_FLOOD_UPLOAD_FILESIZE} "
     else
        # PUT a different file each time
-       VERB_COMMANDLINE="--verb PUT --filenameIndexing --uploadSizeByte ${CSS_FLOOD_UPLOAD_FILESIZE} "
+       VERB_COMMANDLINE="--verb PUT --filenameIndexing --uploadSizeByte ${SOLID_FLOOD_UPLOAD_FILESIZE} "
     fi
   fi
-  if [ "${CSS_FLOOD_HTTP_VERB}" = 'POST' ]
+  if [ "${SOLID_FLOOD_HTTP_VERB}" = 'POST' ]
   then
-    VERB_COMMANDLINE="--verb POST --filenameIndexing --uploadSizeByte ${CSS_FLOOD_UPLOAD_FILESIZE} "
+    VERB_COMMANDLINE="--verb POST --filenameIndexing --uploadSizeByte ${SOLID_FLOOD_UPLOAD_FILESIZE} "
   fi
-  if [ "${CSS_FLOOD_HTTP_VERB}" = 'DELETE' ]
+  if [ "${SOLID_FLOOD_HTTP_VERB}" = 'DELETE' ]
   then
     VERB_COMMANDLINE="--verb DELETE --filenameIndexing"
   fi
-  if [ "${CSS_FLOOD_HTTP_VERB}" = 'PATCH' ]
+  if [ "${SOLID_FLOOD_HTTP_VERB}" = 'PATCH' ]
   then
     # this implies that ${SCENARIO_COMMANDLINE} contains: --scenario N3_PATCH
      if [ "${CONTENT_FILES_RDF_SIZE}" == '100000' ]
@@ -279,18 +283,18 @@ then
 
   echo
   set -v
-  /usr/bin/timeout -v -k '15s' --signal=INT "${CSS_FLOOD_TIMEOUT}s" /usr/local/bin/css-flood \
+  /usr/bin/timeout -v -k '15s' --signal=INT "${SOLID_FLOOD_TIMEOUT}s" /usr/local/bin/css-flood \
                     --accounts USE_EXISTING --account-source FILE --account-source-file ${ACCOUNTS_FILE} \
-                    --reportFile "${CSS_FLOOD_REPORT}" \
+                    --reportFile "${SOLID_FLOOD_REPORT}" \
                     --steps 'loadAC,validateAC,flood' \
                     ${STOP_CONDITION_COMMANDLINE} \
-                    --userCount ${CSS_FLOOD_USER_COUNT} \
-                    --parallel ${CSS_FLOOD_PARALLEL_DOWNLOADS} \
-                    --processCount ${CSS_FLOOD_WORKERS} \
+                    --userCount ${SOLID_FLOOD_USER_COUNT} \
+                    --parallel ${SOLID_FLOOD_PARALLEL_DOWNLOADS} \
+                    --processCount ${SOLID_FLOOD_WORKERS} \
                     ${SCENARIO_COMMANDLINE} \
                     ${AUTH_COMMANDLINE} \
                     ${VERB_COMMANDLINE} \
-                     --fetchTimeoutMs "${CSS_FLOOD_SINGLE_TIMEOUT_MS}" \
+                     --fetchTimeoutMs "${SOLID_FLOOD_SINGLE_TIMEOUT_MS}" \
                     --filename "${NESTED_POD_FILENAME}" --authCacheFile ${AUTH_CACHE_FILE} \
                      2>&1 | head -c 4M | tee "$OUTPUT_FILE" | head -c 500K
   flood_ret_code=${PIPESTATUS[0]}
@@ -299,12 +303,12 @@ then
   echo "css-flood exited with exit code $flood_ret_code" | tee -a "$OUTPUT_FILE"
   echo
 
-  if [ -e "$CSS_FLOOD_REPORT" ]
+  if [ -e "$SOLID_FLOOD_REPORT" ]
   then
-    echo "css-flood report '$CSS_FLOOD_REPORT' created:"
-    ls -l "$CSS_FLOOD_REPORT" || true  # show output file
+    echo "css-flood report '$SOLID_FLOOD_REPORT' created:"
+    ls -l "$SOLID_FLOOD_REPORT" || true  # show output file
   else
-    echo "css-flood report '$CSS_FLOOD_REPORT' not found after running css-flood"
+    echo "css-flood report '$SOLID_FLOOD_REPORT' not found after running css-flood"
   fi
 
   if [ -e "$OUTPUT_FILE" ]
@@ -324,10 +328,10 @@ then
               --type OTHER --sub-type 'css-flood output' \
               --description "CSS Flood test stdout+stderr"
 
-    if [ -e "$CSS_FLOOD_REPORT" ]
+    if [ -e "$SOLID_FLOOD_REPORT" ]
     then
       echo "Uploading css-flood report to: '${PERFTEST_UPLOAD_ENDPOINT}' with auth '{${PERFTEST_UPLOAD_AUTH_TOKEN}}'"
-      solidlab-perftest-upload "${PERFTEST_UPLOAD_ENDPOINT}" "$CSS_FLOOD_REPORT" \
+      solidlab-perftest-upload "${PERFTEST_UPLOAD_ENDPOINT}" "$SOLID_FLOOD_REPORT" \
                 --auth-token "${PERFTEST_UPLOAD_AUTH_TOKEN}" \
                 --type OTHER --sub-type 'css-flood report' \
                 --mime-type 'application/json' \
