@@ -22,7 +22,12 @@ else
 fi
 
 CLIENT_PUBLIC_DNS_NAME="$(cat /etc/client_dns_name)"
-CSS_PUBLIC_DNS_NAME="$(cat /etc/css_dns_name)"
+
+if [ -z "${ATC_URLS}" ]
+then
+  echo "ATC_URLS must contain at least one active test config URL"
+  exit 1
+fi
 
 if [ -z "$GENERATED_FILES_NEST_DEPTH" ]
 then
@@ -49,10 +54,22 @@ fi
 CONTENT_FILES_RDF_SIZE=$(echo "${CONTENT_FILES_RDF_SIZE}" | tr -d '_\n')
 CONTENT_FILES_RDF_SIZE_NICK=$(echo "${CONTENT_FILES_RDF_SIZE}" | sed -e 's/000$/k/' | sed -e 's/000k$/M/' | sed -e 's/000M$/G/' )
 
-export ARTILLERY_DISABLE_TELEMETRY='true'
+
+AUTH_CACHE_FILE="/tmp/auth-cache.json"
+ACCOUNTS_FILE="/tmp/accounts.json"
+
+for ATC_URL in ${ATC_URLS}
+do
+  # TODO support multiple servers
+  #      requires merging accounts.json and auth-cache.json
+  echo "Fetching active test server info from ${ATC_URL}"
+  curl "${ATC_URL}/accounts.json" > "${ACCOUNTS_FILE}"
+  curl "${ATC_URL}/auth-cache.json" > "${AUTH_CACHE_FILE}"
+done
 
 if [ "$FLOOD_TOOL" == 'ARTILLERY' ]
 then
+  export ARTILLERY_DISABLE_TELEMETRY='true'
   # Vars from PerfTest:
   #ARTILLERY_SCENARIO="fixed arrivalRate" or "rampUp"
   #ARTILLERY_ARRIVAL_RATE=100  # or 1000 or ...   -> artillery will read this var from env itself.
@@ -181,14 +198,6 @@ then
     rm "$CSS_FLOOD_REPORT"
   fi
 
-#  SERVER_URL='http://{{cookiecutter.css_host}}:{{cookiecutter.css_port}}'
-  SERVER_URL="https://${CSS_PUBLIC_DNS_NAME}"  # always 443 now
-#  if [ "$SERVER_UNDER_TEST" == "nginx" ]
-#  then
-#    SERVER_URL="https://${CSS_PUBLIC_DNS_NAME}:8443"
-##    POD_FILENAME="${POD_FILENAME}"'$.txt'  # not needed anymore now files are uploaded as stream octet by css-populate
-#  fi
-
   AUTH_COMMANDLINE=''
   if [ "$AUTHENTICATED_CALLS" == 'true' ]
   then
@@ -268,12 +277,10 @@ then
 
   echo "AUTH_COMMANDLINE: $AUTH_COMMANDLINE"
 
-  AUTH_CACHE_FILE="${base_dir}/auth-cache.json"
-
-  # --onlyPreCacheAuth --saveAuthCacheFile --authCacheFile auth-cache.json
   echo
   set -v
-  /usr/bin/timeout -v -k '15s' --signal=INT "${CSS_FLOOD_TIMEOUT}s" /usr/local/bin/css-flood --url "$SERVER_URL" \
+  /usr/bin/timeout -v -k '15s' --signal=INT "${CSS_FLOOD_TIMEOUT}s" /usr/local/bin/css-flood \
+                    --accounts USE_EXISTING --account-source FILE --account-source-file ${ACCOUNTS_FILE} \
                     --reportFile "${CSS_FLOOD_REPORT}" \
                     --steps 'loadAC,validateAC,flood' \
                     ${STOP_CONDITION_COMMANDLINE} \

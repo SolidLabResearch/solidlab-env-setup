@@ -204,7 +204,6 @@ then
   "${exe_dir}/provide_certs.sh"
 fi
 
-LOCAL_BASE_URL="${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}:3000/"
 GLOBAL_BASE_URL="${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}/"
 if [ -n "${OVERRIDE_BASE_URL}" ]
 then
@@ -365,7 +364,6 @@ function update_css_service_file() {
   # Rewrite css.service with the correct settings
   #
   # Input env vars:
-  #   $LOCAL_BASE_URL
   #   $GLOBAL_BASE_URL
   #   $CSS_PUBLIC_DNS_NAME
   #   $env_file
@@ -380,10 +378,6 @@ function update_css_service_file() {
   echo "Updating CSS systemd service to use config '$1' and root '$2'"
 
   BASE_URL="${GLOBAL_BASE_URL}"
-  if $4
-  then
-    BASE_URL="${LOCAL_BASE_URL}"
-  fi
 
 #  cp -v "/etc/systemd/system/css.service.template" /etc/systemd/system/
   sed -e "s/<<CSS_DNS_NAME>>/${SS_PUBLIC_DNS_NAME}/g" \
@@ -753,7 +747,7 @@ function generate_css_data() {
 
   if "${_START_SS}"
   then
-    update_css_service_file "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}" "${_CSS_DATA_DIR}" "${_used_port}" false
+    update_css_service_file "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}" "${_CSS_DATA_DIR}" "${_used_port}"
     start_css "${_used_port}" "${_used_proto}"
   fi
 
@@ -784,6 +778,7 @@ function collect_access_tokens() {
   #   $2 = target auth cache file
   local _CSS_DATA_DIR="$1"
   local _AUTH_CACHE_FILE="$2"
+  local _ACCOUNTS_FILE="$3"
 
   if [ -e "${_CSS_DATA_DIR}/ERROR" ]
   then
@@ -796,15 +791,18 @@ function collect_access_tokens() {
   local _used_port="${USED_CSS_PORT}"
   local _used_proto="${HTTP_PROTO_PREFIX}"
 
-  update_css_service_file "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}" "${_CSS_DATA_DIR}" "${_used_port}" false
+  update_css_service_file "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}" "${_CSS_DATA_DIR}" "${_used_port}"
   start_css "${_used_port}" "${_used_proto}"
 
+  # Note: _ACCOUNTS_FILE has basename and port matching USED_CSS_PORT and HTTP_PROTO_PREFIX
+
   echo "Collecting access tokens for all users"
-  css-flood --url "${_used_proto}://${SS_PUBLIC_DNS_NAME}:${_used_port}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
-           --authenticate --authenticateCache all --filename dummy.txt \
-           --steps 'loadAC,fillAC,validateAC,saveAC' \
-           --ensure-auth-expiration 600 \
-           --authCacheFile "${_AUTH_CACHE_FILE}" || touch "${_CSS_DATA_DIR}/ERROR"
+  css-flood --accounts USE_EXISTING --account-source FILE --account-source-file ${_ACCOUNTS_FILE} \
+            --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+            --authenticate --authenticateCache all --filename dummy.txt \
+            --steps 'loadAC,fillAC,validateAC,saveAC' \
+            --ensure-auth-expiration 600 \
+            --authCacheFile "${_AUTH_CACHE_FILE}" || touch "${_CSS_DATA_DIR}/ERROR"
 
   systemctl stop css traefik || true
 
@@ -1012,7 +1010,7 @@ then
       cp -a "${CSS_NICKCONT_CLEAN_DATA_DIR}" "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
       # copied all files, including hidden files and CSS server internal data
 
-      collect_access_tokens "${CSS_NICKCONT_CLEAN_AUTH_DIR}" "${CSS_NICKCONT_AUTH_CACHE_FILE}"
+      collect_access_tokens "${CSS_NICKCONT_CLEAN_AUTH_DIR}" "${CSS_NICKCONT_AUTH_CACHE_FILE}" "${CSS_NICKCONT_USER_JSON_FILE}"
 
       du -hs "${CSS_NICKCONT_CLEAN_DATA_DIR}" "${CSS_NICKCONT_CLEAN_AUTH_DIR}" || echo ''
     else
@@ -1042,7 +1040,7 @@ echo '* CSS Install ready ***'
 echo '***********************'
 
 create_css_config_file "${CONFIG_DIR}" "${CONFIG_FILE}"
-update_css_service_file "${CONFIG_FILE}" "${SERVER_DATA_DIR}" "${USED_CSS_PORT}" false
+update_css_service_file "${CONFIG_FILE}" "${SERVER_DATA_DIR}" "${USED_CSS_PORT}"
 
 if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
 then
@@ -1193,21 +1191,24 @@ fi
 
 #########################################################
 
-# make authentication cache available
+# Update authentication cache available
 if [ "${GENERATE_USERS,,}" == "true" ] && [ "$SERVER_UNDER_TEST" == "css" ]
 then
+  # PROBLEM: auth-cache token info is now stored in ${SERVER_DATA_DIR} instead of ${CSS_NICKCONT_CLEAN_AUTH_DIR}
+
   # This step is allowed to fail
   set +e
 
   # make sure authentication cache can be downloaded using nginx
-  echo "Configure and start authentication cache webserver at 8888"
+  echo "Update ${CSS_NICKCONT_AUTH_CACHE_FILE}"
 
   echo "Making sure that auth cache ${CSS_NICKCONT_AUTH_CACHE_FILE} is up to date"
-  css-flood --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
-           --authenticate --authenticateCache all --filename dummy.txt \
-           --steps 'loadAC,fillAC,validateAC,saveAC,testRequest' \
-           --ensure-auth-expiration 600 \
-           --authCacheFile "${CSS_NICKCONT_AUTH_CACHE_FILE}" || touch "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR"
+  css-flood --accounts USE_EXISTING --account-source FILE --account-source-file "${CSS_NICKCONT_USER_JSON_FILE}" \
+            --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+            --authenticate --authenticateCache all --filename dummy.txt \
+            --steps 'loadAC,fillAC,validateAC,saveAC,testRequest' \
+            --ensure-auth-expiration 600 \
+            --authCacheFile "${CSS_NICKCONT_AUTH_CACHE_FILE}" || touch "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR"
 
   if [ -e "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR" ]
   then
@@ -1215,11 +1216,20 @@ then
     rm -v "${CSS_NICKCONT_AUTH_CACHE_FILE}"
 
     echo "Collecting access tokens for all users"
-    css-flood --url "${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}" --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
-             --authenticate --authenticateCache all --filename dummy.txt \
-             --steps 'fillAC,validateAC,saveAC,testRequest' \
-             --ensure-auth-expiration 600 \
-             --authCacheFile "${CSS_NICKCONT_AUTH_CACHE_FILE}" || touch "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR"
+    css-flood --accounts USE_EXISTING --account-source FILE --account-source-file "${CSS_NICKCONT_USER_JSON_FILE}" \
+              --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+              --authenticate --authenticateCache all --filename dummy.txt \
+              --steps 'fillAC,validateAC,saveAC,testRequest' \
+              --ensure-auth-expiration 600 \
+              --authCacheFile "${CSS_NICKCONT_AUTH_CACHE_FILE}" || touch "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR"
+  fi
+
+
+  if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
+  then
+      # Special situation todo
+      rm -r "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
+      cp -a "${SERVER_DATA_DIR}" "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
   fi
 
   set -e
