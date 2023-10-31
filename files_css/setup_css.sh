@@ -1194,7 +1194,9 @@ fi
 # Update authentication cache available
 if [ "${GENERATE_USERS,,}" == "true" ] && [ "$SERVER_UNDER_TEST" == "css" ]
 then
-  # PROBLEM: auth-cache token info is now stored in ${SERVER_DATA_DIR} instead of ${CSS_NICKCONT_CLEAN_AUTH_DIR}
+  # BEWARE: running CSS is uses ${SERVER_DATA_DIR} instead of ${CSS_NICKCONT_CLEAN_AUTH_DIR}
+  #         so if we update auth-cache, any new tokens get written to the SERVER_DATA_DIR internal storage!
+  #         So at the end of this step, we need to copy the internal data...
 
   # This step is allowed to fail
   set +e
@@ -1227,9 +1229,10 @@ then
 
   if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
   then
-      # Special situation todo
-      rm -r "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
-      cp -a "${SERVER_DATA_DIR}" "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
+      # Make sure our clean version with auth has this new auth info.
+      # This is still clean, as we just created the "unclean" version from the clean version.
+      rm -r "${CSS_NICKCONT_CLEAN_AUTH_DIR}/.internal"
+      cp -a "${SERVER_DATA_DIR}/.internal" "${CSS_NICKCONT_CLEAN_AUTH_DIR}/"
   fi
 
   set -e
