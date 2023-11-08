@@ -1,15 +1,37 @@
 #!/bin/bash -e
 
-base_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-cd "${base_dir}"
+exe_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd "${exe_dir}"
 
 # stderr to stdout for all of script
 exec 2>&1
 
+install_prefix="/usr/local/"
+etc_dir="/usr/local/etc/"
+share_dir="/usr/local/share/"
+output_dir="/tmp/"
+
+if [ "$(dirname "${exe_dir}")" == '/usr/local' ]
+then
+  install_prefix="/usr/local/"
+  etc_dir="/usr/local/etc"
+elif [ "$(dirname "${exe_dir}")" ==  '/usr' ]
+then
+  install_prefix="/usr/"
+  etc_dir="/etc"
+elif [ "$(dirname "${exe_dir}")" ==  '/' ]
+then
+  install_prefix="/"
+  etc_dir="/etc"
+else
+  echo "$(basename "${BASH_SOURCE[0]}") is installed in an unsupported dir: ${exe_dir}"
+  exit 1
+fi
+
 # Load environment variables from flood.env
 #   (allexport adds "export" to all of them)
 set -o allexport
-source "${base_dir}/flood.env"
+source "${etc_dir}/flood.env"
 set +o allexport
 
 if echo "$PATH" | grep -q '/usr/local/bin'
@@ -20,8 +42,6 @@ else
     PATH="/usr/local/bin:$PATH"
     export PATH="/usr/local/bin:$PATH"
 fi
-
-CLIENT_PUBLIC_DNS_NAME="$(cat /etc/client_dns_name)"
 
 if [ -z "${ATC_URLS}" ]
 then
@@ -108,7 +128,6 @@ then
     exit 1
   fi
 
-{% raw %}
   ARTILLERY_CONFIG='active-artillery-config.yaml'
   # ARTILLERY has templates between double curly brackets, like jinja2, but these are very limited
   # We need to pre-process some things ourselves  (not ideal to do it here in bash... but it works for now.)
@@ -117,9 +136,7 @@ then
       -e 's#{{ $processEnvironment.ARTILLERY_ARRIVAL_RATE // 2 }}#'$(echo "${ARTILLERY_ARRIVAL_RATE}/2"|bc)'#g' \
       -e 's#{{ $processEnvironment.ARTILLERY_ARRIVAL_RATE }}#'"${ARTILLERY_ARRIVAL_RATE}"'#g' \
         < "${TEMPLATE_ARTILLERY_CONFIG}" > "${ARTILLERY_CONFIG}"
-{% endraw %}
 
-{% if cookiecutter.perftest_start_agent|string|lower == 'true' %}
   if [ -n "$PERFTEST_UPLOAD_ENDPOINT" ]
   then
     echo "Uploading artillery conf file to: '${PERFTEST_UPLOAD_ENDPOINT}' with auth '{${PERFTEST_UPLOAD_AUTH_TOKEN}}'"
@@ -128,16 +145,14 @@ then
               --type OTHER --sub-type 'artillery config' --mime-type 'text/yaml' \
               --description "Artillery config $ARTILLERY_CONFIG"
   fi
-{% endif %}
 
-
-  OUTPUT_FILE="${base_dir}/artillery.json"
+  OUTPUT_FILE="${output_dir}/artillery.json"
   if [ -e "$OUTPUT_FILE" ]
   then
     rm "$OUTPUT_FILE"
   fi
 
-  CHATTER_FILE="${base_dir}/artillery-stdout.txt"
+  CHATTER_FILE="${output_dir}/artillery-stdout.txt"
   if [ -e "$CHATTER_FILE" ]
   then
     rm "$CHATTER_FILE"
@@ -162,7 +177,6 @@ then
   echo "artillery exited with exit code ${artillery_ret_code}" >> "$CHATTER_FILE"
   echo
 
-{% if cookiecutter.perftest_start_agent|string|lower == 'true' %}
   if [ -n "$PERFTEST_UPLOAD_ENDPOINT" ]
   then
     if [ -e "$OUTPUT_FILE" ]
@@ -185,18 +199,17 @@ then
               --type OTHER --sub-type 'artillery debug' \
               --description "Artillery stdout $CHATTER_FILE"
   fi
-{% endif %}
   exit "${artillery_ret_code}"
 fi
 
-if [ "$FLOOD_TOOL" == 'CSS-FLOOD' ]
+if [ "$FLOOD_TOOL" == 'SOLID-FLOOD' ]
 then
-  OUTPUT_FILE="${base_dir}/css-flood-output.txt"
+  OUTPUT_FILE="${output_dir}/solid-flood-output.txt"
   if [ -e "$OUTPUT_FILE" ]
   then
     rm "$OUTPUT_FILE"
   fi
-  SOLID_FLOOD_REPORT="${base_dir}/css-flood-report.json"
+  SOLID_FLOOD_REPORT="${output_dir}/solid-flood-report.json"
   if [ -e "$SOLID_FLOOD_REPORT" ]
   then
     rm "$SOLID_FLOOD_REPORT"
@@ -266,13 +279,13 @@ then
     # this implies that ${SCENARIO_COMMANDLINE} contains: --scenario N3_PATCH
      if [ "${CONTENT_FILES_RDF_SIZE}" == '100000' ]
      then
-        VERB_COMMANDLINE="--verb PATCH --n3PatchGenFile ${base_dir}/infobox-properties_lang\=nl__head750_100kB.nt"
+        VERB_COMMANDLINE="--verb PATCH --n3PatchGenFile ${share_dir}/infobox-properties_lang\=nl__head750_100kB.nt"
      elif [ "${CONTENT_FILES_RDF_SIZE}" == '1000000' ]
      then
-        VERB_COMMANDLINE="--verb PATCH --n3PatchGenFile ${base_dir}/infobox-properties_lang\=nl__head7500_1MB.nt"
+        VERB_COMMANDLINE="--verb PATCH --n3PatchGenFile ${share_dir}/infobox-properties_lang\=nl__head7500_1MB.nt"
      elif [ "${CONTENT_FILES_RDF_SIZE}" == '10000000' ]
      then
-        VERB_COMMANDLINE="--verb PATCH --n3PatchGenFile ${base_dir}/infobox-properties_lang\=nl__head75000_10MB.nt"
+        VERB_COMMANDLINE="--verb PATCH --n3PatchGenFile ${share_dir}/infobox-properties_lang\=nl__head75000_10MB.nt"
      else
         echo "RDF file size ${CONTENT_FILES_RDF_SIZE} (${CONTENT_FILES_RDF_SIZE_NICK}) not supported"
         exit 1
@@ -283,12 +296,12 @@ then
 
   echo
   set -v
-  /usr/bin/timeout -v -k '15s' --signal=INT "${SOLID_FLOOD_TIMEOUT}s" /usr/local/bin/css-flood \
+  /usr/bin/timeout -v -k '15s' --signal=INT "${SOLID_FLOOD_TIMEOUT}s" /usr/local/bin/solid-flood \
                     --accounts USE_EXISTING --account-source FILE --account-source-file ${ACCOUNTS_FILE} \
                     --reportFile "${SOLID_FLOOD_REPORT}" \
                     --steps 'loadAC,validateAC,flood' \
                     ${STOP_CONDITION_COMMANDLINE} \
-                    --userCount ${SOLID_FLOOD_USER_COUNT} \
+                    --podCount ${SOLID_FLOOD_USER_COUNT} \
                     --parallel ${SOLID_FLOOD_PARALLEL_DOWNLOADS} \
                     --processCount ${SOLID_FLOOD_WORKERS} \
                     ${SCENARIO_COMMANDLINE} \
@@ -300,44 +313,43 @@ then
   flood_ret_code=${PIPESTATUS[0]}
   set +v
   echo
-  echo "css-flood exited with exit code $flood_ret_code" | tee -a "$OUTPUT_FILE"
+  echo "solid-flood exited with exit code $flood_ret_code" | tee -a "$OUTPUT_FILE"
   echo
 
   if [ -e "$SOLID_FLOOD_REPORT" ]
   then
-    echo "css-flood report '$SOLID_FLOOD_REPORT' created:"
+    echo "solid-flood report '$SOLID_FLOOD_REPORT' created:"
     ls -l "$SOLID_FLOOD_REPORT" || true  # show output file
   else
-    echo "css-flood report '$SOLID_FLOOD_REPORT' not found after running css-flood"
+    echo "solid-flood report '$SOLID_FLOOD_REPORT' not found after running solid-flood"
   fi
 
   if [ -e "$OUTPUT_FILE" ]
   then
-    echo "css-flood stdout+stderr output file '$OUTPUT_FILE' created:"
+    echo "solid-flood stdout+stderr output file '$OUTPUT_FILE' created:"
     ls -l "$OUTPUT_FILE" || true  # show output file
   else
-    echo "css-flood stdout+stderr output file '$OUTPUT_FILE' not found after running css-flood"
+    echo "solid-flood stdout+stderr output file '$OUTPUT_FILE' not found after running solid-flood"
   fi
 
-{% if cookiecutter.perftest_start_agent|string|lower == 'true' %}
   if [ -n "$PERFTEST_UPLOAD_ENDPOINT" ]
   then
-    echo "Uploading css-flood output to: '${PERFTEST_UPLOAD_ENDPOINT}' with auth '{${PERFTEST_UPLOAD_AUTH_TOKEN}}'"
+    echo "Uploading solid-flood output to: '${PERFTEST_UPLOAD_ENDPOINT}' with auth '{${PERFTEST_UPLOAD_AUTH_TOKEN}}'"
     solidlab-perftest-upload "${PERFTEST_UPLOAD_ENDPOINT}" "$OUTPUT_FILE" \
               --auth-token "${PERFTEST_UPLOAD_AUTH_TOKEN}" \
-              --type OTHER --sub-type 'css-flood output' \
-              --description "CSS Flood test stdout+stderr"
+              --type OTHER --sub-type 'solid-flood output' \
+              --description "solid-flood stdout+stderr"
 
     if [ -e "$SOLID_FLOOD_REPORT" ]
     then
-      echo "Uploading css-flood report to: '${PERFTEST_UPLOAD_ENDPOINT}' with auth '{${PERFTEST_UPLOAD_AUTH_TOKEN}}'"
+      echo "Uploading solid-flood report to: '${PERFTEST_UPLOAD_ENDPOINT}' with auth '{${PERFTEST_UPLOAD_AUTH_TOKEN}}'"
       solidlab-perftest-upload "${PERFTEST_UPLOAD_ENDPOINT}" "$SOLID_FLOOD_REPORT" \
                 --auth-token "${PERFTEST_UPLOAD_AUTH_TOKEN}" \
-                --type OTHER --sub-type 'css-flood report' \
+                --type OTHER --sub-type 'solid-flood report' \
                 --mime-type 'application/json' \
-                --description "CSS Flood Report"
+                --description "solid-flood Report"
     fi
   fi
-{% endif %}
+
   exit $flood_ret_code
 fi

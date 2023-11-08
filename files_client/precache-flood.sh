@@ -1,15 +1,37 @@
 #!/bin/bash -e
 
-base_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-cd "${base_dir}"
+exe_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd "${exe_dir}"
 
 # stderr to stdout for all of script
 exec 2>&1
 
+install_prefix="/usr/local/"
+etc_dir="/usr/local/etc/"
+share_dir="/usr/local/share/"
+output_dir="/tmp/"
+
+if [ "$(dirname "${exe_dir}")" == '/usr/local' ]
+then
+  install_prefix="/usr/local/"
+  etc_dir="/usr/local/etc"
+elif [ "$(dirname "${exe_dir}")" ==  '/usr' ]
+then
+  install_prefix="/usr/"
+  etc_dir="/etc"
+elif [ "$(dirname "${exe_dir}")" ==  '/' ]
+then
+  install_prefix="/"
+  etc_dir="/etc"
+else
+  echo "$(basename "${BASH_SOURCE[0]}") is installed in an unsupported dir: ${exe_dir}"
+  exit 1
+fi
+
 # Load environment variables from flood.env
 #   (allexport adds "export" to all of them)
 set -o allexport
-source "${base_dir}/flood.env"
+source "${etc_dir}/flood.env"
 set +o allexport
 
 if echo "$PATH" | grep -q '/usr/local/bin'
@@ -20,8 +42,6 @@ else
     PATH="/usr/local/bin:$PATH"
     export PATH="/usr/local/bin:$PATH"
 fi
-
-#CLIENT_PUBLIC_DNS_NAME="$(cat /etc/client_dns_name)"
 
 if [ -z "${ATC_URLS}" ]
 then
@@ -40,7 +60,7 @@ fi
 
 flood_ret_code=0
 
-if [ "$FLOOD_TOOL" != 'CSS-FLOOD' ] && [ "$FLOOD_TOOL" != 'ARTILLERY' ]
+if [ "$FLOOD_TOOL" != 'SOLID-FLOOD' ] && [ "$FLOOD_TOOL" != 'ARTILLERY' ]
 then
   echo "Nothing to do for FLOOD_TOOL $FLOOD_TOOL"
   exit 0
@@ -48,7 +68,7 @@ fi
 
 # Both solid-flood and artillery use the solid-flood cache for authentication
 
-OUTPUT_FILE="${base_dir}/solid-flood-precache-output.txt"
+OUTPUT_FILE="${output_dir}/solid-flood-precache-output.txt"
 if [ -e "$OUTPUT_FILE" ]
 then
   rm "$OUTPUT_FILE"
@@ -90,28 +110,10 @@ else
 fi
 
 if [ -z "${SOLID_FLOOD_SINGLE_TIMEOUT_MS}" ]
-then
-  SOLID_FLOOD_SINGLE_TIMEOUT_MS=4000
+then  SOLID_FLOOD_SINGLE_TIMEOUT_MS=4000
 fi
 
 echo "AUTH_COMMANDLINE: $AUTH_COMMANDLINE"
-
-AUTH_CACHE_FILE="${base_dir}/auth-cache.json"
-#  AUTH_CACHE_FILE_CLEAN="${base_dir}/auth-cache-clean.json"
-#  if [ -e "${AUTH_CACHE_FILE_CLEAN}" ]
-#  then
-#    cp -v "${AUTH_CACHE_FILE_CLEAN}" "${AUTH_CACHE_FILE}"
-#  fi
-if [ "${STORAGE_BACKEND}" == 'file' ]
-then
-  # Download cache file directly using nginx
-  curl "http://${CSS_PUBLIC_DNS_NAME}:8888/auth-cache.json" --output "${AUTH_CACHE_FILE}" -v
-  echo "Downloaded '${AUTH_CACHE_FILE}'. Debug content:"
-  jq '.filename,.timestamp,.authAccessTokenByUser[0].expire' < "${AUTH_CACHE_FILE}" || true
-else
-  echo "No way to download existing auth-cache.json. Will need to fetch all auth now."
-  rm "${AUTH_CACHE_FILE}"
-fi
 
 # Note: setup_css.sh makes sure that the cache downloaded above is up to date.
 #       But you can never be sure, so we check below (and refresh when needed).
@@ -126,7 +128,7 @@ set -x
                   --accounts USE_EXISTING --account-source FILE --account-source-file ${ACCOUNTS_FILE} \
                   --steps 'loadAC,fillAC,saveAC' \
                   --duration ${SOLID_FLOOD_DURATION} \
-                  --userCount ${SOLID_FLOOD_USER_COUNT} \
+                  --podCount ${SOLID_FLOOD_USER_COUNT} \
                   --parallel ${SOLID_FLOOD_PARALLEL_DOWNLOADS} \
                   ${AUTH_COMMANDLINE} \
                   --filename "${POD_FILENAME}" \
@@ -149,7 +151,7 @@ set -x
                   --accounts USE_EXISTING --account-source FILE --account-source-file ${ACCOUNTS_FILE} \
                   --steps 'loadAC,validateAC,testRequest' \
                   --duration ${SOLID_FLOOD_DURATION} \
-                  --userCount ${SOLID_FLOOD_USER_COUNT} \
+                  --podCount ${SOLID_FLOOD_USER_COUNT} \
                   --parallel ${SOLID_FLOOD_PARALLEL_DOWNLOADS} \
                   ${AUTH_COMMANDLINE} \
                   --filename "${POD_FILENAME}" \
@@ -177,6 +179,6 @@ then
   solidlab-perftest-upload "${PERFTEST_UPLOAD_ENDPOINT}" "$OUTPUT_FILE" \
             --auth-token "${PERFTEST_UPLOAD_AUTH_TOKEN}" \
             --type OTHER --sub-type 'solid-flood precache output' \
-            --description "CSS Flood --onlyPreCacheAuth stdout+stderr"
+            --description "solid-flood --onlyPreCacheAuth stdout+stderr"
 fi
 exit $flood_ret_code
