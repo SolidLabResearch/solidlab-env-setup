@@ -112,6 +112,7 @@ function generate_ss_data() {
   if [ "${GENERATE_CONTENT,,}" != "true" ] && [ "${GENERATE_USERS,,}" != "true" ]
   then
     # Nothing to do
+    echo "Nothing to do: GENERATE_CONTENT=${GENERATE_CONTENT} GENERATE_USERS=${GENERATE_USERS}"
     return 0;
   fi
 
@@ -199,7 +200,7 @@ function generate_ss_data() {
   fi
 
   set -x
-  solid-populate \
+  solid-populate -vvv \
       ${ACCOUNT_ARGS} \
       ${AUTHORIZATION_ARG} \
       --dir-depth "${GENERATED_FILES_NEST_DEPTH}" \

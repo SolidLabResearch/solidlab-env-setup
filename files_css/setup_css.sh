@@ -463,6 +463,7 @@ function create_neutral_config() {
   jq '."@graph"[].comment = "SolidLab PerfTest neutral HTTP config with AUTHORIZATION='"${AUTHORIZATION}"' LDP_AUTHORIZATION='"${LDP_AUTHORIZATION}"' AUXILIARY='"${AUXILIARY}"'"
         | (..|strings|select(contains("http/server-factory/"))) |= sub("/[\\w._-]+$"; "/http.json")
         | (..|strings|select(contains("identity/registration/"))) |= sub("/[\\w._-]+$"; "/enabled.json")
+        | (..|strings|select(contains("identity/handler/"))) |= sub("/[\\w._-]+$"; "/default.json")
         | (..|strings|select(contains("identity/interaction/"))) |= sub("/[\\w._-]+$"; "/default.json")
         | (..|strings|select(contains("http/middleware/websockets.json"))) |= sub("/[\\w._-]+$"; "/no-websockets.json")
         | (..|strings|select(contains("http/notifications/"))) |= sub("/[\\w._-]+$"; "/disabled.json")
@@ -475,6 +476,7 @@ function create_neutral_config() {
   jq '."@graph"[].comment = "SolidLab PerfTest neutral HTTPS config with AUTHORIZATION='"${AUTHORIZATION}"' LDP_AUTHORIZATION='"${LDP_AUTHORIZATION}"' AUXILIARY='"${AUXILIARY}"'"
         | (..|strings|select(contains("http/server-factory/"))) |= sub("/[\\w._-]+$"; "/https.json")
         | (..|strings|select(contains("identity/registration/"))) |= sub("/[\\w._-]+$"; "/enabled.json")
+        | (..|strings|select(contains("identity/handler/"))) |= sub("/[\\w._-]+$"; "/default.json")
         | (..|strings|select(contains("identity/interaction/"))) |= sub("/[\\w._-]+$"; "/default.json")
         | (..|strings|select(contains("http/middleware/websockets.json"))) |= sub("/[\\w._-]+$"; "/no-websockets.json")
         | (..|strings|select(contains("http/notifications/"))) |= sub("/[\\w._-]+$"; "/disabled.json")
@@ -483,9 +485,9 @@ function create_neutral_config() {
         ' \
      < "${CSS_CONFIG_BASE}" \
      > "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}"
-  echo 'DEBUG neutral config http:'
+  echo -n 'DEBUG neutral config http: '
   grep -H 'server-factory' "${SERVER_NEUTRAL_HTTP_CONFIG_FILE}"
-  echo 'DEBUG neutral config https:'
+  echo -n 'DEBUG neutral config https: '
   grep -H 'server-factory' "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}"
 }
 
@@ -532,18 +534,23 @@ function install_css() {
 
   # Make access tokens valid for 10 years
   echo 'Increasing access token ttl to 10 years:'
-  cp config/identity/handler/provider-factory/identity.json config/identity/handler/provider-factory/identity.json.orig
+  ttl_file='config/identity/handler/provider-factory/identity.json'  # v6
+  if [ ! -e "${ttl_file}" ]
+  then
+     ttl_file='config/identity/handler/base/provider-factory.json'  # v7
+  fi
+  cp "${ttl_file}" "${ttl_file}.orig"
   # identity.json contained trailing comma in json at some point . We use rjson to fix it (if present).
   if which rjson > /dev/null 2> /dev/null
   then
      # rjson is the cli tool of relaxed-json. See https://github.com/phadej/relaxed-json
      # see also https://github.com/jqlang/jq/wiki/FAQ#processing-not-quite-valid-json
-     rjson config/identity/handler/provider-factory/identity.json.orig > config/identity/handler/provider-factory/identity.json
+     rjson "${ttl_file}.orig" > "${ttl_file}"
   fi
   jq '."@graph"[].config.ttl.AccessToken = 315576000 | ."@graph"[].config.ttl.ClientCredentials = 315576000' \
-      > config/identity/handler/provider-factory/identity.json \
-      < config/identity/handler/provider-factory/identity.json.orig
-  jq '."@graph"[].config.ttl' < config/identity/handler/provider-factory/identity.json
+      > "${ttl_file}" \
+      < "${ttl_file}.orig"
+  jq '."@graph"[].config.ttl' < "${ttl_file}"
   echo
 
 #  if [ "$SERVER_FACTORY" == "https" ]  # do this always, we just don't use https.json if "$SERVER_FACTORY" != "https"
@@ -725,6 +732,7 @@ function generate_css_data() {
   if [ "${GENERATE_CONTENT,,}" != "true" ] && [ "${GENERATE_USERS,,}" != "true" ]
   then
     # Nothing to do
+    echo "Nothing to do: GENERATE_CONTENT=${GENERATE_CONTENT} GENERATE_USERS=${GENERATE_USERS}"
     return 0;
   fi
 
@@ -797,12 +805,14 @@ function collect_access_tokens() {
   # Note: _ACCOUNTS_FILE has basename and port matching USED_CSS_PORT and HTTP_PROTO_PREFIX
 
   echo "Collecting access tokens for all users"
-  css-flood --accounts USE_EXISTING --account-source FILE --account-source-file ${_ACCOUNTS_FILE} \
-            --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+  set -x
+  solid-flood --accounts USE_EXISTING --account-source FILE --account-source-file ${_ACCOUNTS_FILE} \
+            --duration 1 --parallel 1 \
             --authenticate --authenticateCache all --filename dummy.txt \
             --steps 'loadAC,fillAC,validateAC,saveAC' \
             --ensure-auth-expiration 600 \
             --authCacheFile "${_AUTH_CACHE_FILE}" || touch "${_CSS_DATA_DIR}/ERROR"
+  set +x
 
   systemctl stop css traefik || true
 
@@ -833,13 +843,23 @@ function create_css_config_file() {
   # Input env vars:
   #   $env_file
 
+  cd "${SERVER_SOURCE_DIR}"
+
+  # CSS upto 6
+  CSS_CONFIG_BASE="config/file-no-setup.json"
+  if [ ! -e "${CSS_CONFIG_BASE}" ]
+  then
+    # CSS 7.0.0
+    CSS_CONFIG_BASE="config/file-root.json"
+  fi
+
   if [ ! -d "${_CONFIG_DIR}" ]
   then
     echo "Creating ${_CONFIG_DIR}"
     mkdir -p "${_CONFIG_DIR}"
   fi
 
-  cp "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CONFIG_FILE}"
+#  cp "${SERVER_NEUTRAL_CONFIG_FILE}" "${_CONFIG_FILE}"
   chmod -R uog+r "${_CONFIG_DIR}"
   chmod -R og-w "${_CONFIG_DIR}"
 
@@ -884,13 +904,14 @@ function create_css_config_file() {
      exit 1
   fi
 
-  # Finally, rewrite the config file
-  # Old version without jq:
-#  sed -e "s#config/ldp/authorization/[a-z][a-z-]*.json#config/ldp/authorization/${AUTHORIZATION}.json#" \
-#      -e "s#config/util/resource-locker/[a-z][a-z-]*.json#config/util/resource-locker/${RESOURCE_LOCKER}.json#" \
-#      -e "s#config/http/server-factory/[a-z][a-z-]*.json#config/http/server-factory/${SERVER_FACTORY}.json#" \
-#      -i "${_CONFIG_FILE}"
+  if [ ! -e "${_CONFIG_FILE}" ]
+  then
+    cp -v "${CSS_CONFIG_BASE}" "${_CONFIG_FILE}"
+  fi
   cp -v "${_CONFIG_FILE}" "${_CONFIG_FILE}.bck"
+
+  # Finally, rewrite the config file
+
   # notifications were alwayss disable before:
 #            | (..|strings|select(contains("http/notifications/"))) |= sub("/[\\w._-]+$"; "/disabled.json")
   jq '."@graph"[].comment = "SolidLab PerfTest config for AUTHORIZATION='"${AUTHORIZATION}"' LDP_AUTHORIZATION='"${LDP_AUTHORIZATION}"' AUXILIARY='"${AUXILIARY}"' RESOURCE_LOCKER='"${RESOURCE_LOCKER}"' STORAGE_BACKEND='"${USED_STORAGE_BACKEND}"' ('"${STORAGE_BACKEND}"') NOTIFICATION_SERVER_CONFIG='"${NOTIFICATION_SERVER_CONFIG}"' SERVER_FACTORY='"${SERVER_FACTORY}"'"
@@ -901,6 +922,7 @@ function create_css_config_file() {
             | (..|strings|select(contains("storage/backend/"))) |= sub("/[\\w._-]+$"; "/'"${USED_STORAGE_BACKEND}"'.json")
             | (..|strings|select(contains("http/notifications/"))) |= sub("/[\\w._-]+$"; "/'"${NOTIFICATION_SERVER_CONFIG}"'.json")
             | (..|strings|select(contains("identity/registration/"))) |= sub("/[\\w._-]+$"; "/enabled.json")
+            | (..|strings|select(contains("identity/handler/"))) |= sub("/[\\w._-]+$"; "/default.json")
             | (..|strings|select(contains("identity/interaction/"))) |= sub("/[\\w._-]+$"; "/default.json")
             | (..|strings|select(contains("http/middleware/websockets.json"))) |= sub("/[\\w._-]+$"; "/no-websockets.json")
             ' \
@@ -941,21 +963,21 @@ else
   echo "Using existing CSS install for $NICK: ${SERVER_SOURCE_DIR} with exe ${EXE}"
 fi
 
-if [ ! -e "$SERVER_NEUTRAL_CONFIG_FILE" ]
-then
-  create_neutral_config
-fi
+#if [ ! -e "$SERVER_NEUTRAL_CONFIG_FILE" ]
+#then
+#  create_neutral_config
+#fi
 
 echo '#########################################################'
 
 # Dir to store metadata (account info and auth cache) for this NICK+CONTENT_ID
-CSS_NICKCONT_METADATA_DIR="/srv/css-commit-$NICK-${CONTENT_ID}/"
+CSS_NICKCONT_METADATA_DIR="/srv/css-commit-$NICK-${CONTENT_ID}-meta/"
 
 # Datadir of empty CSS server for this NICK+CONTENT_ID
-CSS_NICKCONT_CLEAN_DATA_DIR="/srv/css-commit-$NICK-${CONTENT_ID}/"
+CSS_NICKCONT_CLEAN_DATA_DIR="/srv/css-commit-$NICK-${CONTENT_ID}-clean/"
 
 # Datadir of empty CSS server for this NICK+CONTENT_ID + with internal account info (user and access tokens etc) matching auth-cache
-CSS_NICKCONT_CLEAN_AUTH_DIR="/srv/css-commit-$NICK-${CONTENT_ID}/"
+CSS_NICKCONT_CLEAN_AUTH_DIR="/srv/css-commit-$NICK-${CONTENT_ID}-clean-auth/"
 
 # Actual dir used by running CSS (which means it can get "dirty" during testing)
 SERVER_DATA_DIR="/srv/css-$NICK-${CONTENT_ID}/"
@@ -1205,12 +1227,14 @@ then
   echo "Update ${CSS_NICKCONT_AUTH_CACHE_FILE}"
 
   echo "Making sure that auth cache ${CSS_NICKCONT_AUTH_CACHE_FILE} is up to date"
-  css-flood --accounts USE_EXISTING --account-source FILE --account-source-file "${CSS_NICKCONT_USER_JSON_FILE}" \
-            --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+  set -x
+  solid-flood --accounts USE_EXISTING --account-source FILE --account-source-file "${CSS_NICKCONT_USER_JSON_FILE}" \
+            --duration 1 --parallel 1 \
             --authenticate --authenticateCache all --filename dummy.txt \
             --steps 'loadAC,fillAC,validateAC,saveAC,testRequest' \
             --ensure-auth-expiration 600 \
             --authCacheFile "${CSS_NICKCONT_AUTH_CACHE_FILE}" || touch "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR"
+  set +x
 
   if [ -e "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR" ]
   then
@@ -1218,12 +1242,14 @@ then
     rm -v "${CSS_NICKCONT_AUTH_CACHE_FILE}"
 
     echo "Collecting access tokens for all users"
-    css-flood --accounts USE_EXISTING --account-source FILE --account-source-file "${CSS_NICKCONT_USER_JSON_FILE}" \
-              --duration 1 --userCount "${CONTENT_USER_COUNT}" --parallel 1 \
+    set -x
+    solid-flood --accounts USE_EXISTING --account-source FILE --account-source-file "${CSS_NICKCONT_USER_JSON_FILE}" \
+              --duration 1 --parallel 1 \
               --authenticate --authenticateCache all --filename dummy.txt \
               --steps 'fillAC,validateAC,saveAC,testRequest' \
               --ensure-auth-expiration 600 \
               --authCacheFile "${CSS_NICKCONT_AUTH_CACHE_FILE}" || touch "${CSS_NICKCONT_CLEAN_AUTH_DIR}/ERROR"
+    set +x
   fi
 
 
