@@ -20,3 +20,9 @@
     mode: u=rw,g=rw,o=rw
   loop:
     - flood.env
+    -
+- name: Install list of server ATC URLs
+  ansible.builtin.copy:
+    content: |
+      {% for host in groups['ss_servers'] %}http://{{ hostvars[host][ 'ansible_ssh_host' ] }}:8888/ {% endfor %}
+    dest: /usr/local/etc/atc_urls
