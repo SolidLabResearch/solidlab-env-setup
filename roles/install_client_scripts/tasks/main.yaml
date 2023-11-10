@@ -6,9 +6,11 @@
     group: root
     mode: u=rwx,g=rx,o=rx
   loop:
+    - flood-init.sh
     - flood.sh
     - precache-flood.sh
     - notification-subscribe.sh
+    - flood-artillery.sh
 
 - name: Install etc files for client
   ansible.builtin.copy:

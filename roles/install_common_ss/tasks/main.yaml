@@ -7,6 +7,7 @@
     mode: u=rwx,g=rx,o=rx
   loop:
     - provide_certs.sh
+    - setup_ss_init.sh
   when: ss_use_https
 
 - name: Install active-test-config-webserver

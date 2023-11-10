@@ -93,7 +93,7 @@
       timeout: "{{ 20 * 60 }}"
       environment:
         SS_PUBLIC_DNS_NAME: "{{ '' if ss_use_https else 'localhost' }}"
-      tags: css
+      tags: kss
     # setup_kss.sh writes to /usr/local/share/ss_url
 
     - name: Collect server URLs

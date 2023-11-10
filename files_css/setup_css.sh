@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+
 # Configure and start CSS before a test
 #
 # This will:
@@ -17,50 +18,11 @@ exe_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd "${exe_dir}"
 # exe_dir should be /usr/local/bin/
 
-# import functions from generate_content.sh
-source "${exe_dir}/generate_content.sh"
-
-# install_prefix is /, /usr/ or /usr/local/
-# will be auto-detected by looking at exe_dir
-
 # stderr to stdout for all of script
 exec 2>&1
 
-install_prefix="/usr/local/"
-etc_dir="/usr/local/etc/"
-share_dir="/usr/local/share/"
-
-if [ "$(dirname "${exe_dir}")" == '/usr/local' ]
-then
-  install_prefix="/usr/local/"
-  etc_dir="/usr/local/etc"
-elif [ "$(dirname "${exe_dir}")" ==  '/usr' ]
-then
-  install_prefix="/usr/"
-  etc_dir="/etc"
-elif [ "$(dirname "${exe_dir}")" ==  '/' ]
-then
-  install_prefix="/"
-  etc_dir="/etc"
-else
-  echo "$(basename "${BASH_SOURCE[0]}") is installed in an unsupported dir: ${exe_dir}"
-  exit 1
-fi
-
-env_file="${etc_dir}/setup_css.env"
-data_dir="${install_prefix}share/"
-
-if [ ! -e "${env_file}" ]
-then
-  echo "env file not found: '${env_file}'"
-  exit 1
-fi
-
-# Load environment variables from setup_css.env
-#   (allexport adds "export" to all of them)
-set -o allexport
-source "${env_file}"
-set +o allexport
+env_file_base="setup_css.env"
+source "${exe_dir}/setup_ss_init.sh"
 
 if [ -z "$SERVER_FACTORY" ]
 then
@@ -69,40 +31,11 @@ then
   export SERVER_FACTORY='http'
 fi
 
-# The caller of setup_css.sh can set the FQDN
-# If not set by caller, use /etc/host_fqdn
-if [ -z "$CSS_PUBLIC_DNS_NAME" ]
-then
-  if [ "$SERVER_FACTORY" == "https" ]
-  then
-    SS_PUBLIC_DNS_NAME="$(cat /etc/host_fqdn)"
-  else
-    SS_PUBLIC_DNS_NAME="localhost"
-  fi
-fi
-
 if [ -z "$WORKERS" ]
 then
   echo 'Missing required env var WORKERS'
   exit 1
 fi
-
-if [ -z "$SERVER_UNDER_TEST" ]
-then
-  echo 'Missing required env var SERVER_UNDER_TEST'
-  exit 1
-fi
-
-# Make sure all service files are up to date
-systemctl daemon-reload
-
-# Start by stopping any old servers
-echo "Stopping CSS, traefik, auth-cache-webserver and nginx (if running)."
-systemctl stop css traefik nginx auth-cache-webserver kss || echo 'ignoring stop failure'
-# If the above fails, there's typically an error in a systemd unit .service file
-# Or the services simply don't exist on this specific setup
-
-systemctl start redis-server || echo 'ignoring start redis failed'
 
 if [ -z "$GIT_REPO_URL" ]
 then
@@ -189,32 +122,7 @@ fi
 CONTENT_FILES_RDF_SIZE=$(echo "${CONTENT_FILES_RDF_SIZE}" | tr -d '_\n')
 CONTENT_FILES_RDF_SIZE_NICK=$(echo "${CONTENT_FILES_RDF_SIZE}" | sed -e 's/000$/k/' | sed -e 's/000k$/M/' | sed -e 's/000M$/G/' )
 
-IS_CSS_HTTPS_SERVER='false'
-HTTP_PROTO_PREFIX="http"
-USED_CSS_PORT=3000
-USED_CSS_PORT_SUFFIX=":3000"
-if [ "${SERVER_FACTORY}" = 'https' ]
-then
-  IS_CSS_HTTPS_SERVER='true'
-  HTTP_PROTO_PREFIX="https"
-  USED_CSS_PORT=443
-  USED_CSS_PORT_SUFFIX=""  # none needed: http is already 443
-
-  # Then make sure we have the SSL cert we might need
-  "${exe_dir}/provide_certs.sh"
-fi
-
-GLOBAL_BASE_URL="${HTTP_PROTO_PREFIX}://${SS_PUBLIC_DNS_NAME}${USED_CSS_PORT_SUFFIX}/"
-if [ -n "${OVERRIDE_BASE_URL}" ]
-then
-  GLOBAL_BASE_URL="${OVERRIDE_BASE_URL}"
-fi
-
-if [ -n "${OVERRIDE_PORT}" ]
-then
-  USED_CSS_PORT="${OVERRIDE_PORT}"
-  USED_CSS_PORT_SUFFIX=":${OVERRIDE_PORT}"
-fi
+systemctl start redis-server || echo 'ignoring start redis failed'
 
 echo "Using CSS commit: $GIT_CHECKOUT_ARG"
 
@@ -259,15 +167,15 @@ function start_css() {
   echo "Starting server on port ${_SS_PORT} with proto ${_SS_PROTO}..."
 
   systemctl daemon-reload
-  _USED_CSS_PORT=$(sed -n -e 's/^ExecStart.*--port \([0-9][0-9]*\).*/\1/p' /etc/systemd/system/css.service)
-  echo "   USED_CSS_PORT in css.service=${_USED_CSS_PORT}"
+  _USED_SS_PORT=$(sed -n -e 's/^ExecStart.*--port \([0-9][0-9]*\).*/\1/p' /etc/systemd/system/css.service)
+  echo "   USED_SS_PORT in css.service=${_USED_SS_PORT}"
 
   # We never use traefik anymore. If this IS needed, re-enable this correctly
-  #if [ "${_USED_CSS_PORT}" -eq 443 ]
+  #if [ "${_USED_SS_PORT}" -eq 443 ]
   #then
   #  echo 'Making sure traefik is stopped'
   #  systemctl stop traefik  || echo 'ignoring traefik stop failure'
-  #elif [ "${_USED_CSS_PORT}" -eq 3000 ]
+  #elif [ "${_USED_SS_PORT}" -eq 3000 ]
   #then
   #  echo 'Making sure traefik is running'
   #  systemctl start traefik || true
@@ -750,7 +658,7 @@ function generate_css_data() {
 
 #  local _used_port=3000
 #  local _used_proto=http
-  local _used_port="${USED_CSS_PORT}"
+  local _used_port="${USED_SS_PORT}"
   local _used_proto="${HTTP_PROTO_PREFIX}"
 
   if "${_START_SS}"
@@ -796,13 +704,13 @@ function collect_access_tokens() {
 
 #  local _used_port=3000
 #  local _used_proto=http
-  local _used_port="${USED_CSS_PORT}"
+  local _used_port="${USED_SS_PORT}"
   local _used_proto="${HTTP_PROTO_PREFIX}"
 
   update_css_service_file "${SERVER_NEUTRAL_HTTPS_CONFIG_FILE}" "${_CSS_DATA_DIR}" "${_used_port}"
   start_css "${_used_port}" "${_used_proto}"
 
-  # Note: _ACCOUNTS_FILE has basename and port matching USED_CSS_PORT and HTTP_PROTO_PREFIX
+  # Note: _ACCOUNTS_FILE has basename and port matching USED_SS_PORT and HTTP_PROTO_PREFIX
 
   echo "Collecting access tokens for all users"
   set -x
@@ -1062,7 +970,7 @@ echo '* CSS Install ready ***'
 echo '***********************'
 
 create_css_config_file "${CONFIG_DIR}" "${CONFIG_FILE}"
-update_css_service_file "${CONFIG_FILE}" "${SERVER_DATA_DIR}" "${USED_CSS_PORT}"
+update_css_service_file "${CONFIG_FILE}" "${SERVER_DATA_DIR}" "${USED_SS_PORT}"
 
 if [ "${STORAGE_BACKEND}" == 'file' ] || [ "${STORAGE_BACKEND}" == 'tmpfs' ]
 then
@@ -1194,7 +1102,7 @@ echo '#########################################################'
 if [ "$SERVER_UNDER_TEST" == "css" ]
 then
   echo "Starting CSS (with config ${CONFIG_FILE} server_root ${SERVER_DATA_DIR})"
-  start_css "${USED_CSS_PORT}" "${HTTP_PROTO_PREFIX}"
+  start_css "${USED_SS_PORT}" "${HTTP_PROTO_PREFIX}"
 fi
 
 #########################################################
