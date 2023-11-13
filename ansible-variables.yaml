@@ -8,6 +8,7 @@ start_kss: false
 css_default_checkout_arg: main
 install_perfstat: true
 install_perftest_agent: true
+install_perftest_upload: true
 #install_server_css_populate: true  # replaced by install_server_solid_perftest_tools
 #install_server_css_flood: true  # replaced by install_server_solid_perftest_tools
 install_server_solid_perftest_tools: true  # ignored for now and thus always true!

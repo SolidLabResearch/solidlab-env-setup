@@ -30,7 +30,9 @@
 #      tags: setup,solidlab_tools
     - role: solid_perftest_tools
       tags: setup,solidlab_tools
-      #when: install_server_solid_perftest_tools
+    - role: install_perftest_upload
+      tags: setup,solidlab_tools
+      when: install_perftest_upload
 - hosts: ss_servers
   become: yes
   vars_files:

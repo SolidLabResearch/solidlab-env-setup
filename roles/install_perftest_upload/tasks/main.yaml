@@ -1,0 +1,13 @@
+- name: Setup venv with PerfTest Upload
+  ansible.builtin.pip:
+    name: solidlab-perftest-upload
+    virtualenv_command: '{{ python_exe }} -m venv'
+    virtualenv: /usr/local/venv/perftest-upload/
+
+- name: Create /usr/local/bin/solidlab-perftest-upload
+  ansible.builtin.file:
+    src: /usr/local/venv/perftest-upload/bin/solidlab-perftest-upload
+    dest: /usr/local/bin/solidlab-perftest-upload
+    owner: root
+    group: root
+    state: link

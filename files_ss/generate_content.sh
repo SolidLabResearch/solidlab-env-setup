@@ -200,7 +200,8 @@ function generate_ss_data() {
   fi
 
   set -x
-  solid-populate -vvv \
+#  solid-populate -vvv
+  solid-populate \
       ${ACCOUNT_ARGS} \
       ${AUTHORIZATION_ARG} \
       --dir-depth "${GENERATED_FILES_NEST_DEPTH}" \
