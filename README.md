@@ -118,6 +118,25 @@ Choose the `generated_espec/<espec_name>/` directory, and click "Start ESpec":
 
 Select a name for your experiment, and start it. Now wait until it is running, and the ESpec and ansible script have successfully completed.
 
+### Step 3 (alt): Use RSpec and manually start ansible
+
+Instead of using the ESpec to start ansible, you can just start the experiment and run ansible manually.
+
+Start jFed.
+
+Click on "Open RSpec". Open the rspec in the `generated_espec/<espec_name>/`. Start the experiment.
+
+When the experiment is running, click "Export As", then choose "Export configuration management settings (Ansible, Fabric, ...)".
+Save the zip, and extract it somewhere.
+
+Run ansible from this repo's root dir, like this:
+
+```shell
+ansible-galaxy install -r ansible-galaxy-requirements.yaml
+ansible-playbook --inventory <dir of extracted zip>/ansible-hosts --ssh-common-args '-A -o ControlMaster=auto -o ControlPersist=1200' playbook.yaml
+```
+
+
 ### Step 4 (optional): Extract css root URL list (JSON) 
 
 On the ansible node (first CSS server in experiment) ansible will write files with URL info. You can thus gather all URLs with:
