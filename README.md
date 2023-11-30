@@ -103,22 +103,7 @@ Set the ansible variables in `ansible-variables.yaml`.
 You can mostly leave these as is, but this variable is useful:
 - `ss_use_https`: set to `true` for https (recommended), `false` for http.
 
-### Step 3: Run the ESpec
-
-Start jFed.
-
-Click on "Open ESpec":
-
-![Alt text](img/jfed-open-espec.png)
-
-Select "Local Directory", and click "Choose Dir".
-Choose the `generated_espec/<espec_name>/` directory, and click "Start ESpec":
-
-![Alt text](img/jfed-start-espec.png)
-
-Select a name for your experiment, and start it. Now wait until it is running, and the ESpec and ansible script have successfully completed.
-
-### Step 3 (alt): Use RSpec and manually start ansible
+### Step 3: Use RSpec and manually start ansible
 
 Instead of using the ESpec to start ansible, you can just start the experiment and run ansible manually.
 
@@ -136,6 +121,24 @@ ansible-galaxy install -r ansible-galaxy-requirements.yaml
 ansible-playbook --inventory <dir of extracted zip>/ansible-hosts --ssh-common-args '-A -o ControlMaster=auto -o ControlPersist=1200' playbook.yaml
 ```
 
+### Step 3 (alt): Run the ESpec
+
+Running the ESpec automates everything. This includes installing ansible on a node and running the playbook.
+However, there are still some jFed issues with running recent ansible versions. **It is recommended to not use this method yet.**
+Instead, use "Step 3"
+
+Start jFed.
+
+Click on "Open ESpec":
+
+![Alt text](img/jfed-open-espec.png)
+
+Select "Local Directory", and click "Choose Dir".
+Choose the `generated_espec/<espec_name>/` directory, and click "Start ESpec":
+
+![Alt text](img/jfed-start-espec.png)
+
+Select a name for your experiment, and start it. Now wait until it is running, and the ESpec and ansible script have successfully completed.
 
 ### Step 4 (optional): Extract css root URL list (JSON) 
 
@@ -226,3 +229,6 @@ Inside jFed, you'll need to renew the experiment if you plan to use it for a lon
 
 If you're done with the experiment, don't forget to terminate the experiment.
 
+# License
+
+This code is copyrighted by [Ghent University – imec](http://idlab.ugent.be/) and released under the [EUPLv1.2 license](https://opensource.org/license/eupl-1-2/).

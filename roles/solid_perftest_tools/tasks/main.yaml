@@ -1,7 +1,7 @@
 - name: clone solid-perftest-tools
   ansible.builtin.git:
-#    repo: https://github.com/SolidLabResearch/solid-perftest-tools.git
-    repo: git@gitlab.ilabt.imec.be:wvdemeer/solid-perftest-tools.git
+    repo: https://github.com/SolidLabResearch/solid-perftest-tools.git
+#    repo: git@gitlab.ilabt.imec.be:wvdemeer/solid-perftest-tools.git
     dest: /usr/local/src/solid-perftest-tools
 
 - name: Install solid-perftest-tools
