@@ -1,21 +1,20 @@
 ---
-install_kss: true
+install_kss: false
 install_css: true
 #ss_use_https: false
 ss_use_https: true
-start_css: false
+start_css: true
 start_kss: false
 css_default_checkout_arg: main
-install_perfstat: true
-install_perftest_agent: true
-install_perftest_upload: true
-#install_server_css_populate: true  # replaced by install_server_solid_perftest_tools
-#install_server_css_flood: true  # replaced by install_server_solid_perftest_tools
+install_perfstat: false
+install_perftest_agent: false
+install_perftest_upload: false
 install_server_solid_perftest_tools: true  # ignored for now and thus always true!
 user_active_test_config_webserver: true
-css_default_generate_users: false
-css_default_generate_content: false
+css_default_generate_users: true
+css_default_generate_content: true
 install_client_scripts: true
+css_default_user_count: 100
 
 # Changing this can break things:
 #nodejs_version: 16

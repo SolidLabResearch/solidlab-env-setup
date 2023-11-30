@@ -1,9 +1,9 @@
 {
-    "espec_name": "sldlb",
-    "server_count": 1,
+    "espec_name": "w1tst",
+    "server_count": 2,
     "client_count": 1,
-    "component_manager_urn": "urn:publicid:IDN+wall2.ilabt.iminds.be+authority+cm",
-    "disk_image_name": "urn:publicid:IDN+wall2.ilabt.iminds.be+image+emulab-ops:UBUNTU20-64-STD",
-    "server_hardware_type_name": "pcgen04lsi",
-    "client_hardware_type_name": "pcgen04lsi"
+    "component_manager_urn": "urn:publicid:IDN+wall1.ilabt.imec.be+authority+cm",
+    "disk_image_name": "none",
+    "server_hardware_type_name": "pcgen07-1p",
+    "client_hardware_type_name": "pcgen07-1p"
 }

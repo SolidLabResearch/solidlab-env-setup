@@ -62,6 +62,12 @@
           regexp: '^GENERATE_USERS='
           line: GENERATE_USERS={{ css_default_generate_users }}
 
+      - name: Set CONTENT_USER_COUNT
+        ansible.builtin.lineinfile:
+          path: /usr/local/etc/setup_css.env
+          regexp: '^CONTENT_USER_COUNT='
+          line: CONTENT_USER_COUNT={{ css_default_user_count }}
+
       - name: Set GENERATE_CONTENT
         ansible.builtin.lineinfile:
           path: /usr/local/etc/setup_css.env
