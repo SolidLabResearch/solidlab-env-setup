@@ -641,6 +641,11 @@ function generate_css_data() {
   then
     # Nothing to do
     echo "Nothing to do: GENERATE_CONTENT=${GENERATE_CONTENT} GENERATE_USERS=${GENERATE_USERS}"
+    # Well OK, we do have to make the empty dir
+    if [ ! -d "${CSS_NICKCONT_CLEAN_DATA_DIR}" ]
+    then
+      mkdir "${CSS_NICKCONT_CLEAN_DATA_DIR}"
+    fi
     return 0;
   fi
 
@@ -1185,10 +1190,16 @@ then
   set -e
 fi
 
-# Make the auth cache available
-cp -v "${CSS_NICKCONT_AUTH_CACHE_FILE}" '/usr/local/share/active_test_config/auth-cache.json'
-#Make the account info available
-cp -v "${CSS_NICKCONT_USER_JSON_FILE}" '/usr/local/share/active_test_config/accounts.json'
+if [ "${GENERATE_USERS,,}" == "true" ] && [ "$SERVER_UNDER_TEST" == "css" ]
+then
+  # Make the auth cache available
+  cp -v "${CSS_NICKCONT_AUTH_CACHE_FILE}" '/usr/local/share/active_test_config/auth-cache.json'
+  #Make the account info available
+  cp -v "${CSS_NICKCONT_USER_JSON_FILE}" '/usr/local/share/active_test_config/accounts.json'
+else
+  echo '{}' > '/usr/local/share/active_test_config/auth-cache.json'
+  echo '{}' > '/usr/local/share/active_test_config/accounts.json'
+fi
 
 #########################################################
 
