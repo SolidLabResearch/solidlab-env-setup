@@ -7,7 +7,9 @@
 {% for i in range( cookiecutter.server_count |int ) %}
   <node client_id="ss{{ i }}" exclusive="true" component_manager_id="{{cookiecutter.component_manager_urn}}">
     <sliver_type name="raw-pc">
+{% if cookiecutter.disk_image_name != 'none' %}
       <disk_image name="{{cookiecutter.disk_image_name}}"/>
+{% endif %}
     </sliver_type>
 {% if cookiecutter.server_hardware_type_name != 'none' %}
     <hardware_type name="{{cookiecutter.server_hardware_type_name}}"/>
@@ -24,7 +26,9 @@
 {% for i in range( cookiecutter.client_count |int ) %}
   <node client_id="client{{ i }}" exclusive="true" component_manager_id="{{cookiecutter.component_manager_urn}}">
     <sliver_type name="raw-pc">
+{% if cookiecutter.disk_image_name != 'none' %}
       <disk_image name="{{cookiecutter.disk_image_name}}"/>
+{% endif %}
     </sliver_type>
 {% if cookiecutter.client_hardware_type_name != 'none' %}
     <hardware_type name="{{cookiecutter.client_hardware_type_name}}"/>
