@@ -14,7 +14,12 @@ user_active_test_config_webserver: true
 css_default_generate_users: true
 css_default_generate_content: true
 install_client_scripts: true
-css_default_user_count: 100
+css_default_user_count: 200
+
+css_default_workers: 0  # 0 should be auto
+css_default_notifications: webhooks  # Options: disabled all websockets webhooks legacy-websockets new-old-websockets  (websockets don't work on multithreaded CSS!)
+css_default_resource_locker: redis  # Options: debug-void memory redis file
+css_default_lock_expiration: false   # true or false (true not yet supported!)
 
 # Changing this can break things:
 #nodejs_version: 16

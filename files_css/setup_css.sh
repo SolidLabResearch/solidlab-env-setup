@@ -836,6 +836,19 @@ function create_css_config_file() {
             ' \
          < "${_CONFIG_FILE}.bck" \
          > "${_CONFIG_FILE}"
+
+  # TODO if LOCK_EXPIRATION is enabled, add this to @graph:
+  #  {
+  #      "comment": "The new expiration time for inactive locks, in milliseconds.",
+  #      "@type": "Override",
+  #      "overrideInstance": {
+  #        "@id": "urn:solid-server:default:ResourceLocker"
+  #      },
+  #      "overrideParameters": {
+  #        "@type": "WrappedExpiringReadWriteLocker",
+  #        "expiration": 6000
+  #      }
+  #    }
 }
 
 ##################################################################################################################

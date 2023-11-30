@@ -68,6 +68,35 @@
           regexp: '^CONTENT_USER_COUNT='
           line: CONTENT_USER_COUNT={{ css_default_user_count }}
 
+      - name: Set WORKERS
+        ansible.builtin.lineinfile:
+          path: /usr/local/etc/setup_css.env
+          regexp: '^WORKERS='
+          line: WORKERS={{ css_default_workers }}
+
+      - name: Set NOTIFICATION_SERVER_CONFIG
+        ansible.builtin.lineinfile:
+          path: /usr/local/etc/setup_css.env
+          regexp: '^NOTIFICATION_SERVER_CONFIG='
+          line: NOTIFICATION_SERVER_CONFIG={{ css_default_notifications }}
+
+      - name: Set RESOURCE_LOCKER
+        ansible.builtin.lineinfile:
+          path: /usr/local/etc/setup_css.env
+          regexp: '^RESOURCE_LOCKER='
+          line: RESOURCE_LOCKER={{ css_default_resource_locker }}
+
+      - name: Set LOCK_EXPIRATION
+        ansible.builtin.lineinfile:
+          path: /usr/local/etc/setup_css.env
+          regexp: '^LOCK_EXPIRATION='
+          line: LOCK_EXPIRATION={{ css_default_lock_expiration }}
+
+      - name: fail if LOCK_EXPIRATION is enabled
+        ansible.builtin.fail:
+          msg: LOCK_EXPIRATION is not yet supported in setup_css.sh
+        when: ( css_default_lock_expiration )
+
       - name: Set GENERATE_CONTENT
         ansible.builtin.lineinfile:
           path: /usr/local/etc/setup_css.env
@@ -79,7 +108,6 @@
           path: /usr/local/etc/setup_css.env
           regexp: '^SERVER_FACTORY='
           line: SERVER_FACTORY={{ 'https' if ss_use_https else 'http' }}
-
       # Don't do this: variables starting with CSS_ are seen as args by CSS
       #    - name: Set SS_PUBLIC_DNS_NAME
       #      ansible.builtin.lineinfile:
