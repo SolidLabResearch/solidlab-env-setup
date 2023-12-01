@@ -2,3 +2,6 @@
 .idea/
 .vagrant/
 generated_espec/
+# These are in the repo, for the default values, but local changes are ignored.
+espec/cookiecutter.json
+ansible-variables.yaml
