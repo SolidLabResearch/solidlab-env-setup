@@ -24,9 +24,7 @@ Instructions: [README-vagrant.md](README-vagrant.md)
 
 ## Using an ESpec to test on the virtual wall (with jFed Experiment GUI)
 
-**It is recommended to not use this method yet. It is still under development**
-Running the ESpec automates everything. This includes installing ansible on a node and running the playbook.
-However, there are still some jFed issues when running recent ansible versions.
+**You need the latest jFed version to run this! Use the version at the top of [this page](https://jfed.ilabt.imec.be/releases/develop/?C=N;O=D)**  
 
 Upsides:
 - Real bare metal
@@ -44,9 +42,7 @@ Prerequisites:
 
 ## Using an ESpec to test on the virtual wall (with jFed CLI2)
 
-**It is recommended to not use this method yet. It is still under development**
-Running the ESpec automates everything. This includes installing ansible on a node and running the playbook.
-However, there are still some jFed issues when running recent ansible versions.
+**You need the latest jFed version to run this! Use the version at the top of [this page](https://jfed.ilabt.imec.be/releases/develop/?C=N;O=D)**  
 
 Upsides:
 - Real bare metal
