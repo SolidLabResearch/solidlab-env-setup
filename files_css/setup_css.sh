@@ -952,13 +952,16 @@ then
         exit 1
       fi
 
-      echo "Need to make an auth-cache for $NICK-${CONTENT_ID} in ${CSS_NICKCONT_AUTH_CACHE_FILE} with server dir ${CSS_NICKCONT_CLEAN_AUTH_DIR}"
       echo "Filling '${CSS_NICKCONT_CLEAN_AUTH_DIR}' with clean data for CSS commit $NICK"
       rm -rf "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
       cp -a "${CSS_NICKCONT_CLEAN_DATA_DIR}" "${CSS_NICKCONT_CLEAN_AUTH_DIR}"
       # copied all files, including hidden files and CSS server internal data
 
-      collect_access_tokens "${CSS_NICKCONT_CLEAN_AUTH_DIR}" "${CSS_NICKCONT_AUTH_CACHE_FILE}" "${CSS_NICKCONT_USER_JSON_FILE}"
+      if [ "$SERVER_UNDER_TEST" == "css" ]
+      then
+         echo "Need to make an auth-cache for $NICK-${CONTENT_ID} in ${CSS_NICKCONT_AUTH_CACHE_FILE} with server dir ${CSS_NICKCONT_CLEAN_AUTH_DIR}"
+         collect_access_tokens "${CSS_NICKCONT_CLEAN_AUTH_DIR}" "${CSS_NICKCONT_AUTH_CACHE_FILE}" "${CSS_NICKCONT_USER_JSON_FILE}"
+      fi
 
       du -hs "${CSS_NICKCONT_CLEAN_DATA_DIR}" "${CSS_NICKCONT_CLEAN_AUTH_DIR}" || echo ''
     else
