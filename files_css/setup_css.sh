@@ -1059,6 +1059,9 @@ echo '#########################################################'
 
 if [ "$SERVER_UNDER_TEST" == "nginx" ]
 then
+  echo "Stopping CSS if running"
+  systemctl stop css traefik || true
+
   echo "Starting nginx (+ configuring it)"
   if [ ! -d '/etc/nginx/' ]
   then
@@ -1070,11 +1073,15 @@ then
   if [ "$SERVER_FACTORY" == "https" ] && [ ! -e /etc/letsencrypt/options-ssl-nginx.conf ]
   then
     cp -v /etc/nginx/sites-enabled/default /tmp/backup-nginx-sites-enabled-default
-    certbot run --nginx --domain "${SS_PUBLIC_DNS_NAME}" --agree-tos --register-unsafely-without-email
+    if [ ! -e "${HTTPS_CERT_FILE}" ] || [ ! -e '/etc/letsencrypt/options-ssl-nginx.conf' ] || [ ! -e '/etc/letsencrypt/ssl-dhparams.pem' ]
+    then
+      certbot run --nginx --domain "${SS_PUBLIC_DNS_NAME}" --agree-tos --register-unsafely-without-email
 
-    cp -v /etc/nginx/sites-enabled/default /tmp/backup-nginx-sites-enabled-default-after-certbot
-    cp -v /tmp/backup-nginx-sites-enabled-default /etc/nginx/sites-enabled/default
+      cp -v /etc/nginx/sites-enabled/default /tmp/backup-nginx-sites-enabled-default-after-certbot
+      cp -v /tmp/backup-nginx-sites-enabled-default /etc/nginx/sites-enabled/default
+    fi
 
+    _SS_PORT=443
     cat >> '/etc/nginx/sites-enabled/default' <<"EOF"
 server {
 	root ${SERVER_DATA_DIR};
@@ -1088,8 +1095,8 @@ server {
 		try_files $uri $uri/ =404;
 	}
 
-  listen [::]:443 ssl ipv6only=on;
-  listen 443 ssl;
+  listen [::]:${_SS_PORT} ssl ipv6only=on;
+  listen ${_SS_PORT} ssl;
   ssl_certificate ${HTTPS_CERT_FILE};
   ssl_certificate_key ${HTTPS_KEY_FILE};
   include /etc/letsencrypt/options-ssl-nginx.conf;
