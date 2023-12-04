@@ -58,6 +58,9 @@
     - role: install_kss
       when: install_kss
       tags: kss
+    - role: nginx
+      when: install_nginx
+      tags: nginx
   tasks:
 #    - name: Print all available facts
 #      ansible.builtin.debug:

@@ -1060,6 +1060,11 @@ echo '#########################################################'
 if [ "$SERVER_UNDER_TEST" == "nginx" ]
 then
   echo "Starting nginx (+ configuring it)"
+  if [ ! -d '/etc/nginx/' ]
+  then
+    echo 'nginx is not installed. Cannot continue.'
+    exit 1
+  fi
 
   # Configure nginx if needed
   if [ "$SERVER_FACTORY" == "https" ] && [ ! -e /etc/letsencrypt/options-ssl-nginx.conf ]
