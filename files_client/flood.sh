@@ -24,7 +24,7 @@ CONTENT_FILES_RDF_SIZE=$(echo "${CONTENT_FILES_RDF_SIZE}" | tr -d '_\n')
 CONTENT_FILES_RDF_SIZE_NICK=$(echo "${CONTENT_FILES_RDF_SIZE}" | sed -e 's/000$/k/' | sed -e 's/000k$/M/' | sed -e 's/000M$/G/' )
 
 
-if [ "$FLOOD_TOOL" != 'SOLID-FLOOD' ]
+if [ "${FLOOD_TOOL}" != 'SOLID-FLOOD' ]
 then
   echo "flood.sh only supports FLOOD_TOOL='SOLID-FLOOD' not '$FLOOD_TOOL'"
   exit 1
@@ -42,7 +42,7 @@ then
 fi
 
 AUTH_COMMANDLINE=''
-if [ "$AUTHENTICATED_CALLS" == 'true' ]
+if [ "${AUTHENTICATED_CALLS,,}" == 'true' ]
 then
   AUTH_COMMANDLINE='--authenticate'
   echo 'Will use authenticated solidlab calls'
@@ -83,7 +83,7 @@ fi
 
 if [ "${SOLID_FLOOD_HTTP_VERB}" = 'PUT' ]
 then
-  if [ "${SOLID_FLOOD_STOP_CONDITION}" = 'time' ]
+  if [ "${SOLID_FLOOD_STOP_CONDITION,,}" = 'time' ]
   then
      # Always the same file to PUT
      VERB_COMMANDLINE="--verb PUT --uploadSizeByte ${SOLID_FLOOD_UPLOAD_FILESIZE} "
@@ -118,6 +118,12 @@ then
    fi
 fi
 
+STEPS='loadAC,validateAC,flood'
+if [ "${SERVER_UNDER_TEST,,}" != 'css' ] || [ "${AUTHENTICATED_CALLS,,}" != 'true' ]
+then
+  STEPS='flood'
+fi
+
 echo "AUTH_COMMANDLINE: $AUTH_COMMANDLINE"
 
 echo
@@ -125,7 +131,7 @@ set -v
 /usr/bin/timeout -v -k '15s' --signal=INT "${SOLID_FLOOD_TIMEOUT}s" /usr/local/bin/solid-flood \
                   --accounts USE_EXISTING --account-source FILE --account-source-file ${ACCOUNTS_FILE} \
                   --reportFile "${SOLID_FLOOD_REPORT}" \
-                  --steps 'loadAC,validateAC,flood' \
+                  --steps "${STEPS}" \
                   ${STOP_CONDITION_COMMANDLINE} \
                   --podCount ${SOLID_FLOOD_USER_COUNT} \
                   --parallel ${SOLID_FLOOD_PARALLEL_DOWNLOADS} \

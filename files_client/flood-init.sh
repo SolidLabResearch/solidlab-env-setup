@@ -53,10 +53,15 @@ do
   echo "Fetching active test server info from ${ATC_URL}"
 
   curl "${ATC_URL}/accounts.json" > "${ACCOUNTS_FILE}"
-  echo "  Downloaded auth-cache.json from ${ATC_URL}/auth-cache.json: $(ls -l ${AUTH_CACHE_FILE})"
-
-  curl "${ATC_URL}/auth-cache.json" > "${AUTH_CACHE_FILE}"
   echo "  Downloaded accounts.json from ${ATC_URL}/accounts.json: $(ls -l ${ACCOUNTS_FILE})"
+
+  if [ "${AUTHENTICATED_CALLS,,}" = 'true' ]
+  then
+    curl "${ATC_URL}/auth-cache.json" > "${AUTH_CACHE_FILE}"
+    echo "  Downloaded auth-cache.json from ${ATC_URL}/auth-cache.json: $(ls -l ${AUTH_CACHE_FILE})"
+  else
+    echo "  Not downloaded ${ATC_URL}/auth-cache.json because not needed"
+  fi
 done
 
 

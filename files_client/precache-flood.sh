@@ -14,7 +14,7 @@ exec 2>&1
 # - set $NESTED_POD_FILENAME
 source "${exe_dir}/flood-init.sh"
 
-if [ "$SERVER_UNDER_TEST" != "css" ] && [ "$SERVER_UNDER_TEST" != "kss" ]
+if [ "${SERVER_UNDER_TEST}" != "css" ] && [ "${SERVER_UNDER_TEST}" != "kss" ]
 then
   echo "precache-flood.sh should only be called when SERVER_UNDER_TEST='css' or 'kss'. Not for SERVER_UNDER_TEST='$SERVER_UNDER_TEST'"
   exit 1
