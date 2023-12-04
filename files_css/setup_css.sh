@@ -1117,6 +1117,56 @@ EOF
     exit 1  # We can't really test this!
   fi
 
+
+  #wait until nginx is ready
+  _NGINX_READY=false
+  for wait in $(seq 1 30)  # wait max 30 seconds, then just give up
+  do
+    if ss -Hlnp --tcp sport "${_SS_PORT}" | grep -q '*:'"${_SS_PORT}"
+    then
+       echo "      OK: Something seems to be listening on port ${_SS_PORT}!"
+       _NGINX_READY=true
+#       sleep 0.1
+       break
+    fi
+    sleep 1  #wait until nginx is ready
+    echo "   Waiting for nginx to listen to port ${_SS_PORT} ($wait)..."
+  done
+
+  if ! ${_NGINX_READY}
+  then
+    echo 'ERROR: nginx did not start correctly'
+    exit 1
+  fi
+
+  if [ "$_SS_PROTO" == "https" ]
+  then
+    # Wait until server under test has a valid cert
+    _NGINX_CERT_READY=false
+    for wait in $(seq 1 30)  # wait max 30 secondss, then just give up
+    do
+      if echo -n | openssl s_client -connect "${SS_PUBLIC_DNS_NAME}:${_SS_PORT}" -verify_return_error > /dev/null 2>&1;
+      then
+        echo "      OK: Got a valid certificate from ${SS_PUBLIC_DNS_NAME}:${_SS_PORT}"
+        _NGINX_CERT_READY=true
+        sleep 0.2
+        break
+      else
+        echo "      Not (yet) OK: Failed to get valid cert on ${SS_PUBLIC_DNS_NAME}:${_SS_PORT}"
+      fi
+      sleep 1  #wait until cert is ready
+      echo "   Waiting for a valid certificate ($wait)..."
+    done
+
+    if ! ${_NGINX_CERT_READY}
+    then
+      echo 'ERROR: nginx did not start correctly'
+      exit 1
+    fi
+  else
+    sleep 5
+  fi
+
 else
   # probably already stopped
   echo "Stopping nginx as it is not needed"
@@ -1205,8 +1255,16 @@ then
   #Make the account info available
   cp -v "${CSS_NICKCONT_USER_JSON_FILE}" '/usr/local/share/active_test_config/accounts.json'
 else
-  echo '{}' > '/usr/local/share/active_test_config/auth-cache.json'
-  echo '{}' > '/usr/local/share/active_test_config/accounts.json'
+  echo '[]' > '/usr/local/share/active_test_config/auth-cache.json'
+
+  if [ "${GENERATE_USERS,,}" == "true" ] && [ -e "${CSS_NICKCONT_USER_JSON_FILE}" ]
+  then
+     echo "Making '${CSS_NICKCONT_USER_JSON_FILE}' available as accounts file"
+     cp -v "${CSS_NICKCONT_USER_JSON_FILE}" '/usr/local/share/active_test_config/accounts.json'
+  else
+     echo "Making empty accounts file available because '${CSS_NICKCONT_USER_JSON_FILE}' does not exist"
+     echo '[]' > '/usr/local/share/active_test_config/accounts.json'
+  fi
 fi
 
 #########################################################
