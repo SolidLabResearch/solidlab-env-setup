@@ -16,7 +16,6 @@ exec 2>&1
 env_file_base="setup_kss.env"
 source "${exe_dir}/setup_ss_init.sh"
 
-
 KSS_SERVICE_ENV_FILE="${etc_dir}/kss_service.env"
 KSS_USERS_ENV_FILE="${etc_dir}/kss_users.env"
 KSS_USERS_JSON_FILE="${etc_dir}/kss_users.json"
@@ -46,6 +45,16 @@ HTTPS_KEY_FILE="${etc_dir}/css/server_key.pem"
 #echo "    NICK=$NICK"
 
 make_content_id  # sets CONTENT_ID see generate_content.sh
+
+# Dir to store metadata (account info and auth cache) for this NICK+CONTENT_ID
+KSS_NICKCONT_METADATA_DIR="/srv/kss-commit-$NICK-${CONTENT_ID}-meta/"
+
+# Actual dir used by running KSS (which means it can get "dirty" during testing)
+# For KSS, this dir is only used to flag errors. KSS itself does not store data here!
+SERVER_DATA_DIR="/srv/kss-$NICK-${CONTENT_ID}/"
+
+KSS_NICKCONT_AUTH_CACHE_FILE="${KSS_NICKCONT_METADATA_DIR}auth-cache.json"
+KSS_NICKCONT_USER_JSON_FILE="${KSS_NICKCONT_METADATA_DIR}accounts.json"
 
 ##################################################################################################################
 ##################################################################################################################
@@ -159,6 +168,7 @@ function update_kss_service_file() {
   echo "Updating SS systemd service to use config '$1' and root '$2'"
 
   BASE_URL="${GLOBAL_BASE_URL}"
+  env_file="/usr/local/etc/kss_service.env"
 
 #  cp -v "/etc/systemd/system/kss.service.template" /etc/systemd/system/
   sed -e "s/<<SS_DNS_NAME>>/${SS_PUBLIC_DNS_NAME}/g" \
@@ -246,11 +256,10 @@ EOF
           "oidcIssuer": "http://${SS_PUBLIC_DNS_NAME}:3000/",
           "webID": "https://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/profile/card#me",
           "podUri": "http://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/",
-          "machineLoginUri": "https://${SS_PUBLIC_DNS_NAME}/ldp/.account/"
+          "machineLoginUri": "https://${SS_PUBLIC_DNS_NAME}/ldp/.account/",
+          "machineLoginMethod": "CSS_V7"
         }
 EOF
-#      "machineLoginMethod": "CSS_V7",
-#      "machineLoginUri": "https://${SS_PUBLIC_DNS_NAME}/.account/",
     if [ $i -lt $(( CONTENT_USER_COUNT - 1 )) ]
     then
       echo ',' >> "${KSS_USERS_JSON_FILE}"
@@ -264,11 +273,52 @@ EOF
 ##################################################################################################################
 ##################################################################################################################
 
+function collect_access_tokens() {
+  # Collect access tokens for all users, and store them in cache in well known location
+  #
+  # Input env vars:
+  #   $SS_PUBLIC_DNS_NAME
+
+  # Parameters:
+  #   $1 = running KSS server data dir (only used to store ERROR)
+  #   $2 = target auth cache file
+  local _KSS_DATA_DIR="$1"
+  local _AUTH_CACHE_FILE="$2"
+  local _ACCOUNTS_FILE="$3"
+
+  if [ -e "${_KSS_DATA_DIR}/ERROR" ]
+  then
+    echo "Cannot collect access tokens: ${_KSS_DATA_DIR}/ERROR exists before start!"
+    exit 1
+  fi
+
+  echo "Collecting access tokens for all users"
+  set -x
+  solid-flood --accounts USE_EXISTING --account-source FILE --account-source-file "${_ACCOUNTS_FILE}" \
+            --duration 1 --parallel 1 \
+            --authenticate --authenticateCache all --filename dummy.txt \
+            --steps 'loadAC,fillAC,validateAC,saveAC' \
+            --ensure-auth-expiration 600 \
+            --authCacheFile "${_AUTH_CACHE_FILE}" || touch "${_KSS_DATA_DIR}/ERROR"
+  set +x
+
+  if [ -e "${_KSS_DATA_DIR}/ERROR" ]
+  then
+    echo 'Failed to collect access tokens'
+    exit 1
+  fi
+
+  return 0
+}
+
+##################################################################################################################
+##################################################################################################################
+
 function generate_kss_data() {
   # Users have already been generated
   GENERATE_USERS=false
 
-  generate_ss_data "/tmp/" "${USED_SS_PORT}" https "${USERS_JSON}" "${KSS_USERS_JSON_FILE}"
+  generate_ss_data "${SERVER_DATA_DIR}" "${USED_SS_PORT}" https "${USERS_JSON}" "${KSS_USERS_JSON_FILE}"
   _GEN_RET="$?"
 
   return ${_GEN_RET}
@@ -290,17 +340,36 @@ start_kss
 
 echo '#########################################################'
 
+if [ -d "${SERVER_DATA_DIR}" ]
+then
+  echo "Cleaning ${SERVER_DATA_DIR}"
+  rm -r "${SERVER_DATA_DIR}"
+fi
+mkdir "${SERVER_DATA_DIR}"
+
 echo "Need to generate data for $NICK-${CONTENT_ID}"
 generate_kss_data
+
+if [ -e "${SERVER_DATA_DIR}/ERROR" ]
+then
+  echo "Failed to generate data for KSS in ${SERVER_DATA_DIR}"
+  exit 1
+fi
+
+echo '#########################################################'
+
+if [ ! -e "${KSS_NICKCONT_AUTH_CACHE_FILE}" ]
+then
+   echo "Need to make an auth-cache for $NICK-${CONTENT_ID} in ${KSS_NICKCONT_AUTH_CACHE_FILE}"
+   collect_access_tokens "${SERVER_DATA_DIR}" "${KSS_NICKCONT_AUTH_CACHE_FILE}" "${KSS_NICKCONT_USER_JSON_FILE}"
+fi
 
 echo '#########################################################'
 
 if [ "${GENERATE_USERS,,}" == "true" ]
 then
   # Make the auth cache available
-  # TODO actually create auth-cache in setup_kss.sh
-  echo '[]' > '/usr/local/share/active_test_config/auth-cache.json'
-#  cp -v "${KSS_NICKCONT_AUTH_CACHE_FILE}" '/usr/local/share/active_test_config/auth-cache.json'
+  cp -v "${KSS_NICKCONT_AUTH_CACHE_FILE}" '/usr/local/share/active_test_config/auth-cache.json'
   #Make the account info available
   cp -v "${USERS_JSON}" '/usr/local/share/active_test_config/accounts.json'
 else
