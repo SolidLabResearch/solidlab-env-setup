@@ -1080,21 +1080,25 @@ then
       cp -v /etc/nginx/sites-enabled/default /tmp/backup-nginx-sites-enabled-default-after-certbot
       cp -v /tmp/backup-nginx-sites-enabled-default /etc/nginx/sites-enabled/default
     fi
+  fi
 
-    _SS_PORT=443
-    cat >> '/etc/nginx/sites-enabled/default' <<"EOF"
+  _SS_PORT=443
+  if ! grep -q 'nginx config for setup_css.sh' '/etc/nginx/sites-enabled/default'
+  then
+    cp -v /etc/nginx/sites-enabled/default /etc/nginx/default-site-backup-pre-setup_css
+    echo "Configuring Nginx to use port ${_SS_PORT}"
+    cat > '/etc/nginx/sites-enabled/default' <<EOF
 server {
 	root ${SERVER_DATA_DIR};
 
-	index index.html index.htm index.nginx-debian.html;
+	index index.html;
   server_name ${SS_PUBLIC_DNS_NAME};
 
 	location / {
-		# First attempt to serve request as file, then
-		# as directory, then fall back to displaying a 404.
-		try_files $uri $uri/ =404;
+		# try_files \$uri \$uri/ =404;
 	}
 
+  # nginx config for setup_css.sh
   listen [::]:${_SS_PORT} ssl ipv6only=on;
   listen ${_SS_PORT} ssl;
   ssl_certificate ${HTTPS_CERT_FILE};
@@ -1129,7 +1133,7 @@ EOF
   _NGINX_READY=false
   for wait in $(seq 1 30)  # wait max 30 seconds, then just give up
   do
-    if ss -Hlnp --tcp sport "${_SS_PORT}" | grep -q '*:'"${_SS_PORT}"
+    if ss -Hlnp --tcp sport "${_SS_PORT}" | grep -q ':'"${_SS_PORT}"
     then
        echo "      OK: Something seems to be listening on port ${_SS_PORT}!"
        _NGINX_READY=true

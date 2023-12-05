@@ -41,16 +41,25 @@ then
   rm "$SOLID_FLOOD_REPORT"
 fi
 
+echo "Note: SERVER_UNDER_TEST='${SERVER_UNDER_TEST}'"
+
 AUTH_COMMANDLINE=''
 if [ "${AUTHENTICATED_CALLS,,}" == 'true' ]
 then
-  AUTH_COMMANDLINE='--authenticate'
-  echo 'Will use authenticated solidlab calls'
+  if [ "${SERVER_UNDER_TEST,,}" != "nginx" ]
+  then
+    AUTH_COMMANDLINE='--authenticate'
+    echo 'Will use authenticated solidlab calls'
+  else
+    # Note: nginx cannot use authenticated solid calls. But the tests do sometimes specify this.
+    #       in that case, we ignore the request for authenticated calls.
+    echo "Will use UNauthenticated solidlab calls because SERVER_UNDER_TEST is ${SERVER_UNDER_TEST}"
+  fi
 else
   echo 'Will use UNauthenticated solidlab calls'
 fi
 
-if [ -n "$AUTHENTICATE_CACHE" ]
+if [ -n "$AUTHENTICATE_CACHE" ] && [ "${SERVER_UNDER_TEST,,}" != "nginx" ]
 then
   AUTH_COMMANDLINE="${AUTH_COMMANDLINE} --authenticateCache ${AUTHENTICATE_CACHE}"
   echo "Will use authenticateCache ${AUTHENTICATE_CACHE}"
@@ -79,6 +88,12 @@ then
   SCENARIO_COMMANDLINE="--scenario BASIC"
 else
   SCENARIO_COMMANDLINE="--scenario ${SOLID_FLOOD_SCENARIO}"
+fi
+
+if [ "${SOLID_FLOOD_HTTP_VERB^^}" != 'GET' ] && [ "${SERVER_UNDER_TEST,,}" != "nginx" ]
+then
+  echo "nginx does not support tests with HTTP verb ${SOLID_FLOOD_HTTP_VERB}"
+  exit 1
 fi
 
 if [ "${SOLID_FLOOD_HTTP_VERB}" = 'PUT' ]
