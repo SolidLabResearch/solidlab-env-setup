@@ -1,4 +1,4 @@
-- name: Install Exe provide_certs.sh
+- name: Install Exe provide_certs.sh and setup_ss_init.sh
   ansible.builtin.copy:
     src: "files_ss/{{ item }}"
     dest: "/usr/local/bin/{{ item }}"

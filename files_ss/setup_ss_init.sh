@@ -70,7 +70,9 @@ fi
 # If not set by caller, use /etc/host_fqdn
 if [ -z "$SS_PUBLIC_DNS_NAME" ]
 then
-  if [ "$SERVER_FACTORY" == "https" ]
+  # $SERVER_FACTORY -> CSS
+  # $IS_HTTPS_SERVER -> KSS
+  if [ "$SERVER_FACTORY" == "https" ] || [ "${IS_HTTPS_SERVER,,}" == "true" ]
   then
     SS_PUBLIC_DNS_NAME="$(cat /etc/host_fqdn)"
   else
@@ -88,7 +90,7 @@ fi
 systemctl daemon-reload
 
 # Start by stopping any old servers
-echo "Stopping CSS, traefik, auth-cache-webserver and nginx (if running)."
+echo "Stopping CSS, traefik, KSS and nginx (if running)."
 systemctl stop css traefik nginx kss || echo 'ignoring stop failure'
 # If the above fails, there's typically an error in a systemd unit .service file
 # Or the services simply don't exist on this specific setup

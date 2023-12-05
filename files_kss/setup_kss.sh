@@ -228,23 +228,29 @@ function generate_kss_users() {
 
   for i in $(seq 0 $(( CONTENT_USER_COUNT - 1 )) )
   do
-    cat >>"${KSS_USERS_ENV_FILE}" <<"EOF"
-KVASIR_DEMO_SETUP_PODS_${i}__URI=http://localhost:8080/ldp/user${i}/
+    cat >>"${KSS_USERS_ENV_FILE}" <<EOF
+KVASIR_DEMO_SETUP_PODS_${i}__URI=http://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/
 KVASIR_DEMO_SETUP_PODS_${i}__OIDC_ISSUER=http://localhost:3000/
 KVASIR_DEMO_SETUP_PODS_${i}__EMAIL=user${i}@example.org
 KVASIR_DEMO_SETUP_PODS_${i}__PASSWORD=password${i}
 
 EOF
 
-    cat >>"${KSS_USERS_JSON_FILE}" <<"EOF"
-        { "username": "user${i}",
+    cat >>"${KSS_USERS_JSON_FILE}" <<EOF
+        {
+          "index": ${i},
+          "username": "user${i}",
           "password": "password${i}",
           "email": "user${i}@example.org",
           "podName": "user${i}",
-          "oidcIssuer": "http://localhost:3000/",
-          "uri": "http://localhost:8080/ldp/user${i}/"
+          "oidcIssuer": "http://${SS_PUBLIC_DNS_NAME}:3000/",
+          "webID": "https://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/profile/card#me",
+          "podUri": "http://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/",
+          "machineLoginUri": "https://${SS_PUBLIC_DNS_NAME}/ldp/.account/"
         }
 EOF
+#      "machineLoginMethod": "CSS_V7",
+#      "machineLoginUri": "https://${SS_PUBLIC_DNS_NAME}/.account/",
     if [ $i -lt $(( CONTENT_USER_COUNT - 1 )) ]
     then
       echo ',' >> "${KSS_USERS_JSON_FILE}"
@@ -262,7 +268,7 @@ function generate_kss_data() {
   # Users have already been generated
   GENERATE_USERS=false
 
-  generate_ss_data "/tmp/" "${USED_SS_PORT}" https "${USERS_JSON_FILE_OUT}" "${KSS_USERS_JSON_FILE}"
+  generate_ss_data "/tmp/" "${USED_SS_PORT}" https "${USERS_JSON}" "${KSS_USERS_JSON_FILE}"
   _GEN_RET="$?"
 
   return ${_GEN_RET}
@@ -287,9 +293,38 @@ echo '#########################################################'
 echo "Need to generate data for $NICK-${CONTENT_ID}"
 generate_kss_data
 
+echo '#########################################################'
+
+if [ "${GENERATE_USERS,,}" == "true" ]
+then
+  # Make the auth cache available
+  # TODO actually create auth-cache in setup_kss.sh
+  echo '[]' > '/usr/local/share/active_test_config/auth-cache.json'
+#  cp -v "${KSS_NICKCONT_AUTH_CACHE_FILE}" '/usr/local/share/active_test_config/auth-cache.json'
+  #Make the account info available
+  cp -v "${USERS_JSON}" '/usr/local/share/active_test_config/accounts.json'
+else
+  echo '[]' > '/usr/local/share/active_test_config/auth-cache.json'
+
+  if [ "${GENERATE_USERS,,}" == "true" ] && [ -e "${USERS_JSON}" ]
+  then
+     echo "Making '${USERS_JSON}' available as accounts file"
+     cp -v "${USERS_JSON}" '/usr/local/share/active_test_config/accounts.json'
+  else
+     echo "Making empty accounts file available because '${USERS_JSON}' does not exist"
+     echo '[]' > '/usr/local/share/active_test_config/accounts.json'
+  fi
+fi
+
+echo '#########################################################'
+
 echo '*****************************************************'
 echo "* KSS is configured and running for your Experiment *"
 echo "* at ${GLOBAL_BASE_URL} "
+echo "* "
+echo "* Downloads to get started with the test server: "
+echo "*   - http://${SS_PUBLIC_DNS_NAME}:8888/accounts.json "
+echo "*   - http://${SS_PUBLIC_DNS_NAME}:8888/auth-cache.json "
 echo '*****************************************************'
 
 echo "${GLOBAL_BASE_URL}" > "${share_dir}ss_url"
