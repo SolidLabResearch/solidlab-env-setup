@@ -90,7 +90,7 @@ else
   SCENARIO_COMMANDLINE="--scenario ${SOLID_FLOOD_SCENARIO}"
 fi
 
-if [ "${SOLID_FLOOD_HTTP_VERB^^}" != 'GET' ] && [ "${SERVER_UNDER_TEST,,}" != "nginx" ]
+if [ "${SOLID_FLOOD_HTTP_VERB^^}" != 'GET' ] && [ "${SERVER_UNDER_TEST,,}" == "nginx" ]
 then
   echo "nginx does not support tests with HTTP verb ${SOLID_FLOOD_HTTP_VERB}"
   exit 1
