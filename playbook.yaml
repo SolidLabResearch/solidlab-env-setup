@@ -59,9 +59,8 @@
       when: install_kss
       tags: kss
     - role: nginx
-      when: install_css
+      when: install_nginx
       tags: nginx
-#with install_nginx it gives an error, not sure nginx is needed for css as it said later 'removing nginx or nginx not needed' but it works like this
   tasks:
 #    - name: Print all available facts
 #      ansible.builtin.debug:

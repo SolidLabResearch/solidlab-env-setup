@@ -69,8 +69,7 @@ Now wait until the experiment is running, and the ESpec and ansible script have 
 
 #### Option 1: manual `scp`
 
-To get the same list (@Wim: what is meant here ?) when using the jFed CLI to execute the ESpec, 
-you'll notice that the jFed CLI writes a file `ssh_info.csv` when running the CLI (this is requested in the ESpec).
+You'll notice that the jFed CLI writes a file `ssh_info.csv` when running the CLI (this is requested in the ESpec).
 
 You can download the URL files and then use `cat` as before to summarize them:
 ```shell
