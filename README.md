@@ -35,8 +35,8 @@ Downsides:
 - Multiple steps
 
 Prerequisites:
-- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation)
-- Install [jFed GUI](https://jfed.ilabt.imec.be/downloads/) 
+- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation) (apt install cookiecutter)
+- Install [jFed GUI](https://jfed.ilabt.imec.be/releases/develop/?C=N;O=D) (latest jFed needed)
 
 **Instructions: [README-jFed-gui.md](README-jFed-gui.md)**
 
@@ -53,8 +53,8 @@ Downsides:
 - Slightly more complex setup
 
 Prerequisites: 
-- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation)
-- Install [jFed CLI2](https://jfed.ilabt.imec.be/downloads/) (scroll down for CLI download!)
+- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation) (apt install cookiecutter)
+- Install [jFed CLI2](https://jfed.ilabt.imec.be/releases/develop/?C=N;O=D) (latest jFed needed, scroll down for CLI download!)
 
 **Instructions: [README-jFed-cli.md](README-jFed-cli.md)**
 
