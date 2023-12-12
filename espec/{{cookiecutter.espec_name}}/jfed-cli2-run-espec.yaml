@@ -10,7 +10,7 @@ experiment:
     source: PROVIDE_DIR
     providedContentSource: <<GENERATED_DIR>>
   slice:
-    expireTimeMin: 15
+    expireTimeMin: 60
     failIfNoProject: true
     failOnExistingSlice: false
     projectSource: PROVIDED

@@ -10,8 +10,8 @@ Downsides:
 - Slightly more complex setup
 
 Prerequisites:
-- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation)
-- Install [jFed CLI2](https://jfed.ilabt.imec.be/downloads/) (scroll down for CLI download!)
+- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation) (apt install cookiecutter)
+- Install latest [jFed CLI2](https://jfed.ilabt.imec.be/releases/develop/?C=N;O=D) (click latest release and scroll down for CLI download!)
 
 (Step 0, 1, 2 are the same for jFed GUI and CLI2)
 
@@ -69,8 +69,7 @@ Now wait until the experiment is running, and the ESpec and ansible script have 
 
 #### Option 1: manual `scp`
 
-To get the same list when using the jFed CLI to execute the ESpec, 
-you'll notice that the jFed CLI writes a file `ssh_info.csv` when running the CLI (this is requested in the ESpec).
+You'll notice that the jFed CLI writes a file `ssh_info.csv` when running the CLI (this is requested in the ESpec).
 
 You can download the URL files and then use `cat` as before to summarize them:
 ```shell
