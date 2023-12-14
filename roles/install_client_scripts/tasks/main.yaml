@@ -22,7 +22,7 @@
     mode: u=rw,g=rw,o=rw
   loop:
     - flood.env
-    -
+
 - name: Install list of server ATC URLs
   ansible.builtin.copy:
     content: |

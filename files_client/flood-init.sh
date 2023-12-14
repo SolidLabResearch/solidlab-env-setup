@@ -43,26 +43,50 @@ then
   exit 1
 fi
 
-AUTH_CACHE_FILE="/tmp/auth-cache.json"
-ACCOUNTS_FILE="/tmp/accounts.json"
-
+# Rhis supports multiple servers, merging multiple accounts.json and auth-cache.json in that case
+_cur_index=0
 for ATC_URL in ${ATC_URLS}
 do
-  # TODO support multiple servers
-  #      requires merging accounts.json and auth-cache.json
   echo "Fetching active test server info from ${ATC_URL}"
 
-  curl "${ATC_URL}/accounts.json" > "${ACCOUNTS_FILE}"
-  echo "  Downloaded accounts.json from ${ATC_URL}/accounts.json: $(ls -l ${ACCOUNTS_FILE})"
+  _cur_accounts_file="/tmp/accounts${_cur_index}.json"
+  _all_account_files[_cur_index]="${_cur_accounts_file}"
+  curl "${ATC_URL}/accounts.json" > "${_cur_accounts_file}"
+  echo "  Downloaded accounts.json from ${ATC_URL}/accounts.json: $(ls -l ${_cur_accounts_file})"
 
   if [ "${AUTHENTICATED_CALLS,,}" = 'true' ]
   then
-    curl "${ATC_URL}/auth-cache.json" > "${AUTH_CACHE_FILE}"
-    echo "  Downloaded auth-cache.json from ${ATC_URL}/auth-cache.json: $(ls -l ${AUTH_CACHE_FILE})"
+    _cur_auth_cache_file="/tmp/auth-cache${_cur_index}.json"
+    _all_auth_cache_files[_cur_index]="${_cur_accounts_file}"
+    curl "${ATC_URL}/auth-cache.json" > "${_cur_auth_cache_file}"
+    echo "  Downloaded auth-cache.json from ${ATC_URL}/auth-cache.json: $(ls -l ${_cur_auth_cache_file})"
   else
     echo "  Not downloaded ${ATC_URL}/auth-cache.json because not needed"
   fi
+
+  _cur_index="$((_cur_index + 1))"
 done
+
+ACCOUNTS_FILE="/tmp/accounts.json"
+if [ "${#_all_account_files[@]}" = '1' ]
+then
+  cp -v "${_all_account_files[0]}" "${ACCOUNTS_FILE}"
+else
+  echo "Merging ${#_all_account_files[@]} account files into ${ACCOUNTS_FILE}: ${_all_account_files[*]}"
+  solid-account-file-merger ${_all_account_files[*]} > "${ACCOUNTS_FILE}"
+fi
+
+AUTH_CACHE_FILE="/tmp/auth-cache.json"
+if [ "${AUTHENTICATED_CALLS,,}" = 'true' ]
+then
+  if [ "${#_all_auth_cache_files[@]}" = '1' ]
+  then
+    cp -v "${_all_auth_cache_files[0]}" "${AUTH_CACHE_FILE}"
+  else
+    echo "Merging ${#_all_auth_cache_files[@]} auth caches into ${AUTH_CACHE_FILE}: ${_all_auth_cache_files[*]}"
+    solid-auth-cache-merger ${_all_auth_cache_files[*]} > "${AUTH_CACHE_FILE}"
+  fi
+fi
 
 
 if [ -z "$GENERATED_FILES_NEST_DEPTH" ]
