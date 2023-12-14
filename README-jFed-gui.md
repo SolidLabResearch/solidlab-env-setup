@@ -9,8 +9,8 @@ Downsides:
 - Multiple steps
 
 Prerequisites:
-- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation)
-- Install [jFed GUI](https://jfed.ilabt.imec.be/downloads/) 
+- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation) (`apt install cookiecutter`)
+- Install [jFed GUI](https://jfed.ilabt.imec.be/downloads/) (You need at least **jFed 6.4.7**!)
 - Install [ansible](https://docs.ansible.com/ansible/latest/installation_guide/index.html)
 
 (Step 0, 1, 2 are the same for jFed GUI and CLI2)

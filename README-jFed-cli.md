@@ -10,8 +10,8 @@ Downsides:
 - Slightly more complex setup
 
 Prerequisites:
-- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation) (apt install cookiecutter)
-- Install latest [jFed CLI2](https://jfed.ilabt.imec.be/releases/develop/?C=N;O=D) (click latest release and scroll down for CLI download!)
+- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation) (`apt install cookiecutter`)
+- Install [jFed CLI2](https://jfed.ilabt.imec.be/downloads/)  (scroll down for CLI download)  (You need at least **jFed 6.4.7**!)
 
 (Step 0, 1, 2 are the same for jFed GUI and CLI2)
 

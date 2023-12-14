@@ -12,8 +12,8 @@ Prerequisites:
 - Install [ansible](https://docs.ansible.com/ansible/latest/installation_guide/index.html)
 
 Optional instructions are included to get the needed bare metal servers using jFed (Using an RSpec instead of an ESpec). This requires extra prerequisites:
-- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation)
-- Install [jFed GUI/CLI2](https://jfed.ilabt.imec.be/downloads/)
+- Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation) (`apt install cookiecutter`)
+- Install [jFed GUI/CLI2](https://jfed.ilabt.imec.be/downloads/)   (You need at least **jFed 6.4.7**!)
 
 ### Optional Step 0: Get bare metal resources using jFed.
 
