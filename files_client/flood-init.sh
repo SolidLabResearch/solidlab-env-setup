@@ -57,7 +57,7 @@ do
   if [ "${AUTHENTICATED_CALLS,,}" = 'true' ]
   then
     _cur_auth_cache_file="/tmp/auth-cache${_cur_index}.json"
-    _all_auth_cache_files[_cur_index]="${_cur_accounts_file}"
+    _all_auth_cache_files[_cur_index]="${_cur_auth_cache_file}"
     curl "${ATC_URL}/auth-cache.json" > "${_cur_auth_cache_file}"
     echo "  Downloaded auth-cache.json from ${ATC_URL}/auth-cache.json: $(ls -l ${_cur_auth_cache_file})"
   else

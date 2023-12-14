@@ -22,6 +22,14 @@
     mode: u=rw,g=rw,o=rw
   loop:
     - flood.env
+  register: client_etc_files
+
+- name: Set default flood.env SOLID_FLOOD_USER_COUNT
+  ansible.builtin.lineinfile:
+    path: /usr/local/etc/flood.env
+    regexp: '^SOLID_FLOOD_USER_COUNT='
+    line: "SOLID_FLOOD_USER_COUNT={{ groups['ss_servers']|length * css_default_user_count }}"
+  when: client_etc_files.changed
 
 - name: Install list of server ATC URLs
   ansible.builtin.copy:
