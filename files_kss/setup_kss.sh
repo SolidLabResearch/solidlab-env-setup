@@ -329,7 +329,8 @@ function generate_kss_data() {
 
 echo "Stopping KSS"
 systemctl stop kss || echo 'ignoring stop failed'
-
+# Make sure we start with clean account data in CSS
+docker volume rm kvasir_css_data || echo 'ignoring docker volume rm kvasir_css_data failure'
 
 echo '#########################################################'
 
