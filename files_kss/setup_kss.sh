@@ -253,11 +253,11 @@ EOF
           "password": "password${i}",
           "email": "user${i}@example.org",
           "podName": "user${i}",
-          "oidcIssuer": "http://${SS_PUBLIC_DNS_NAME}:3000/",
+          "oidcIssuer": "http://localhost:3000/",
+          "machineLoginUri": "http://localhost:3000/idp/credentials/",
+          "machineLoginMethod": "CSS_V6",
           "webID": "https://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/profile/card#me",
-          "podUri": "http://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/",
-          "machineLoginUri": "https://${SS_PUBLIC_DNS_NAME}/ldp/.account/",
-          "machineLoginMethod": "CSS_V7"
+          "podUri": "https://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/"
         }
 EOF
     if [ $i -lt $(( CONTENT_USER_COUNT - 1 )) ]
