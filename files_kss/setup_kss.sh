@@ -239,7 +239,7 @@ function generate_kss_users() {
   for i in $(seq 0 $(( CONTENT_USER_COUNT - 1 )) )
   do
     cat >>"${KSS_USERS_ENV_FILE}" <<EOF
-KVASIR_DEMO_SETUP_PODS_${i}__URI=http://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/
+KVASIR_DEMO_SETUP_PODS_${i}__URI=https://${SS_PUBLIC_DNS_NAME}/ldp/user${i}/
 KVASIR_DEMO_SETUP_PODS_${i}__OIDC_ISSUER=http://localhost:3000/
 KVASIR_DEMO_SETUP_PODS_${i}__EMAIL=user${i}@example.org
 KVASIR_DEMO_SETUP_PODS_${i}__PASSWORD=password${i}
