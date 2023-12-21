@@ -68,6 +68,108 @@ fi
 ##################################################################################################################
 ##################################################################################################################
 
+function kss_token_expire_hack() {
+  cat > '/usr/local/src/kvasir/css-init/config-v6.json' << EOF
+  {
+  "@context": "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^6.0.0/components/context.jsonld",
+  "import": [
+    "css:config/app/init/default.json",
+    "css:config/app/main/default.json",
+    "css:config/app/setup/disabled.json",
+    "css:config/app/variables/default.json",
+    "css:config/http/handler/default.json",
+    "css:config/http/middleware/default.json",
+    "css:config/http/notifications/disabled.json",
+    "css:config/http/server-factory/http.json",
+    "css:config/http/static/default.json",
+    "css:config/identity/access/public.json",
+    "css:config/identity/email/default.json",
+    "css:config/identity/handler/default.json",
+    "css:config/identity/ownership/unsafe-no-check.json",
+    "css:config/identity/pod/static.json",
+    "css:config/identity/registration/enabled.json",
+    "css:config/ldp/authentication/dpop-bearer.json",
+    "css:config/ldp/authorization/webacl.json",
+    "css:config/ldp/handler/default.json",
+    "css:config/ldp/metadata-parser/default.json",
+    "css:config/ldp/metadata-writer/default.json",
+    "css:config/ldp/modes/default.json",
+    "css:config/storage/backend/file.json",
+    "css:config/storage/key-value/resource-store.json",
+    "css:config/storage/middleware/default.json",
+    "css:config/util/auxiliary/acl.json",
+    "css:config/util/identifiers/suffix.json",
+    "css:config/util/index/default.json",
+    "css:config/util/logging/winston.json",
+    "css:config/util/representation-conversion/default.json",
+    "css:config/util/resource-locker/file.json",
+    "css:config/util/variables/default.json"
+  ],
+  "@graph": [
+    {
+      "comment": "Make tokens be valid for years instead of minutes",
+      "@type": "Override",
+      "overrideInstance": {
+        "@id": "urn:solid-server:default:IdentityProviderFactory"
+      },
+      "overrideParameters": {
+        "@type": "IdentityProviderFactory",
+
+	"adapterFactory": { "@id": "urn:solid-server:default:IdpAdapterFactory" },
+      "baseUrl": { "@id": "urn:solid-server:default:variable:baseUrl" },
+      "oidcPath": "/.oidc",
+      "interactionHandler": { "@id": "urn:solid-server:auth:password:PromptHandler" },
+      "credentialStorage": { "@id": "urn:solid-server:auth:password:CredentialsStorage" },
+      "storage": { "@id": "urn:solid-server:default:KeyStorage" },
+      "jwkGenerator": { "@id": "urn:solid-server:default:JwkGenerator" },
+      "showStackTrace": { "@id": "urn:solid-server:default:variable:showStackTrace" },
+      "errorHandler": { "@id": "urn:solid-server:default:ErrorHandler" },
+      "responseWriter": { "@id": "urn:solid-server:default:ResponseWriter" },
+      "config": {
+        "claims": {
+          "openid": [ "azp" ],
+          "webid": [ "webid" ]
+        },
+        "clockTolerance": 120,
+        "cookies": {
+          "long": { "signed": true, "maxAge": 86400000 },
+          "short": { "signed": true }
+        },
+        "features": {
+          "claimsParameter": { "enabled": true },
+          "clientCredentials": { "enabled": true },
+          "devInteractions": { "enabled": false },
+          "dPoP": { "enabled": true, "ack": "draft-03" },
+          "introspection": { "enabled": true },
+          "registration": { "enabled": true },
+          "revocation": { "enabled": true },
+          "userinfo": { "enabled": false }
+        },
+        "scopes": [ "openid", "profile", "offline_access", "webid" ],
+        "subjectTypes": [ "public" ],
+        "ttl": {
+                "AccessToken": 315576000,
+                "ClientCredentials": 315576000,
+          "AuthorizationCode": 600,
+          "BackchannelAuthenticationRequest": 600,
+          "DeviceCode": 600,
+          "Grant": 1209600,
+          "IdToken": 3600,
+          "Interaction": 3600,
+          "RefreshToken": 86400,
+          "Session": 1209600
+        }
+      }
+      }
+    }
+  ]
+}
+EOF
+}
+
+##################################################################################################################
+##################################################################################################################
+
 function start_kss() {
   # Start currently configured KSS
   #
@@ -346,6 +448,7 @@ echo '#########################################################'
 echo "Starting KSS"
 systemctl stop redis-server || echo 'ignoring stop failed'
 generate_kss_users
+kss_token_expire_hack
 start_kss
 
 echo '#########################################################'
@@ -411,3 +514,5 @@ echo '*****************************************************'
 echo "${GLOBAL_BASE_URL}" > "${share_dir}ss_url"
 
 exit 0
+
+}
