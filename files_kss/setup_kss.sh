@@ -19,7 +19,7 @@ source "${exe_dir}/setup_ss_init.sh"
 KSS_SERVICE_ENV_FILE="${etc_dir}/kss_service.env"
 KSS_USERS_ENV_FILE="${etc_dir}/kss_users.env"
 KSS_USERS_JSON_FILE="${etc_dir}/kss_users.json"
-USERS_JSON="${etc_dir}/kss_created_users.json"
+#USERS_JSON="${etc_dir}/kss_created_users.json"  # use $KSS_NICKCONT_USER_JSON_FILE instead
 
 NICK='latest'
 #echo "Using SS commit: $GIT_CHECKOUT_ARG"
@@ -55,6 +55,15 @@ SERVER_DATA_DIR="/srv/kss-$NICK-${CONTENT_ID}/"
 
 KSS_NICKCONT_AUTH_CACHE_FILE="${KSS_NICKCONT_METADATA_DIR}auth-cache.json"
 KSS_NICKCONT_USER_JSON_FILE="${KSS_NICKCONT_METADATA_DIR}accounts.json"
+
+if [ ! -d "${KSS_NICKCONT_METADATA_DIR}" ]
+then
+   mkdir "${KSS_NICKCONT_METADATA_DIR}"
+fi
+if [ ! -d "${SERVER_DATA_DIR}" ]
+then
+   mkdir "${SERVER_DATA_DIR}"
+fi
 
 ##################################################################################################################
 ##################################################################################################################
@@ -318,7 +327,7 @@ function generate_kss_data() {
   # Users have already been generated
   GENERATE_USERS=false
 
-  generate_ss_data "${SERVER_DATA_DIR}" "${USED_SS_PORT}" https "${USERS_JSON}" "${KSS_USERS_JSON_FILE}"
+  generate_ss_data "${SERVER_DATA_DIR}" "${USED_SS_PORT}" https "${KSS_NICKCONT_USER_JSON_FILE}" "${KSS_USERS_JSON_FILE}"
   _GEN_RET="$?"
 
   return ${_GEN_RET}
@@ -367,21 +376,23 @@ fi
 
 echo '#########################################################'
 
-if [ "${GENERATE_USERS,,}" == "true" ]
+# if [ "${GENERATE_USERS,,}" == "true" ]
+if [ -e "${KSS_NICKCONT_AUTH_CACHE_FILE}" ]
 then
   # Make the auth cache available
   cp -v "${KSS_NICKCONT_AUTH_CACHE_FILE}" '/usr/local/share/active_test_config/auth-cache.json'
   #Make the account info available
-  cp -v "${USERS_JSON}" '/usr/local/share/active_test_config/accounts.json'
+  cp -v "${KSS_NICKCONT_USER_JSON_FILE}" '/usr/local/share/active_test_config/accounts.json'
 else
   echo '[]' > '/usr/local/share/active_test_config/auth-cache.json'
 
-  if [ "${GENERATE_USERS,,}" == "true" ] && [ -e "${USERS_JSON}" ]
+#  if [ "${GENERATE_USERS,,}" == "true" ] && [ -e "${KSS_NICKCONT_USER_JSON_FILE}" ]
+  if [ -e "${KSS_NICKCONT_USER_JSON_FILE}" ]
   then
-     echo "Making '${USERS_JSON}' available as accounts file"
-     cp -v "${USERS_JSON}" '/usr/local/share/active_test_config/accounts.json'
+     echo "Making '${KSS_NICKCONT_USER_JSON_FILE}' available as accounts file"
+     cp -v "${KSS_NICKCONT_USER_JSON_FILE}" '/usr/local/share/active_test_config/accounts.json'
   else
-     echo "Making empty accounts file available because '${USERS_JSON}' does not exist"
+     echo "Making empty accounts file available because '${KSS_NICKCONT_USER_JSON_FILE}' does not exist"
      echo '[]' > '/usr/local/share/active_test_config/accounts.json'
   fi
 fi
