@@ -440,8 +440,12 @@ function generate_kss_data() {
 
 echo "Stopping KSS"
 systemctl stop kss || echo 'ignoring stop failed'
-# Make sure we start with clean account data in CSS
+# Make sure we start with clean account data in KSS
+
 docker volume rm kvasir_css_data || echo 'ignoring docker volume rm kvasir_css_data failure'
+rm "${KSS_NICKCONT_AUTH_CACHE_FILE}"  # auth cache is invalidated by docker volume rm kvasir_css_data
+
+docker volume rm kvasir_clickhouse_data || echo 'ignoring docker volume rm kvasir_clickhouse_data failure'
 
 echo '#########################################################'
 
@@ -459,6 +463,7 @@ then
   rm -r "${SERVER_DATA_DIR}"
 fi
 mkdir "${SERVER_DATA_DIR}"
+
 
 echo "Need to generate data for $NICK-${CONTENT_ID}"
 generate_kss_data

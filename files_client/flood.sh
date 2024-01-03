@@ -134,7 +134,11 @@ then
 fi
 
 STEPS='loadAC,validateAC,flood'
-if [ "${SERVER_UNDER_TEST,,}" != 'css' ] || [ "${AUTHENTICATED_CALLS,,}" != 'true' ]
+if [ "${SERVER_UNDER_TEST,,}" != 'css' ] && [ "${SERVER_UNDER_TEST,,}" != 'kss' ]
+then
+  STEPS='flood'
+fi
+if [ "${AUTHENTICATED_CALLS,,}" != 'true' ]
 then
   STEPS='flood'
 fi

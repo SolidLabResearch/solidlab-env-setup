@@ -4,7 +4,7 @@ install_css: true
 install_nginx: true
 #ss_use_https: false
 ss_use_https: true
-start_css: false
+start_css: true
 start_kss: false
 css_default_checkout_arg: main
 install_perfstat: false
@@ -16,7 +16,7 @@ install_client_scripts: true
 
 css_default_generate_users: true
 css_default_generate_content: true
-css_default_user_count: 2
+css_default_user_count: 6
 css_default_workers: 0  # 0 should be auto
 css_default_notifications: webhooks  # Options: disabled all websockets webhooks legacy-websockets new-old-websockets  (websockets don't work on multithreaded CSS!)
 css_default_resource_locker: redis  # Options: debug-void memory redis file
