@@ -127,6 +127,11 @@ function generate_ss_data() {
   then
      CONTENT_VAR_SIZE_ARG='--generate-variable-size'
   fi
+  if [ -n "${CONTENT_FILES_FOR_GET_SIZE_USED}" ] && [ "${CONTENT_FILES_FOR_GET,,}" == 'true' ] && [ "${SERVER_UNDER_TEST}" = "kss" ]
+  then
+    # KSS only uploads the one file needed, as content is recreated for each test anyway
+    CONTENT_VAR_SIZE_ARG="--generate-variable-size --generate-variable-size-override-sizes ${CONTENT_FILES_FOR_GET_SIZE_USED}"
+  fi
   CONTENT_FIXED_SIZE_ARG=''
   if [ "${GENERATE_CONTENT,,}" == "true" ] && [ "${CONTENT_FIXED_SIZE_FILECOUNT}" -gt 0 ]
   then
