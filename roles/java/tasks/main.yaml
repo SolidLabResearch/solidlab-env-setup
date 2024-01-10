@@ -36,12 +36,20 @@
   ansible.builtin.apt_repository:
     repo: "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb {{ ansible_distribution_release }} main"
     update_cache: yes
+  register: install_temurin_repo
+  retries: 3
+  delay: 2
+  until: install_temurin_repo is not failed
 
-- name: "Install Temurin Java 20"
+- name: "Install Temurin Java 21"
   ansible.builtin.apt:
     name:
-      - temurin-20-jdk
+      - temurin-21-jdk
     state: present
+  register: install_temurin_result
+  retries: 3
+  delay: 2
+  until: install_temurin_result is not failed
 
 - name: Fetch java version
   ansible.builtin.shell: 'java --version'

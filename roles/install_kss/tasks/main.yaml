@@ -1,12 +1,13 @@
 - name: find kvasir repo project access token
   ansible.builtin.set_fact:
-    kvasir_pat: "{{ lookup('ansible.builtin.env', 'KVASIR_REPO_PROJECT_ACCESS_TOKEN', default=Undefined) }}"
+    kvasir_repo_user: "{{ lookup('ansible.builtin.env', 'KVASIR_REPO_USERNAME', default=Undefined) }}"
+    kvasir_repo_pass: "{{ lookup('ansible.builtin.env', 'KVASIR_REPO_PASSWORD', default=Undefined) }}"
 
 - name: clone kvasir using PAT
   ansible.builtin.git:
-    repo: 'https://pat:{{ kvasir_pat }}@gitlab.ilabt.imec.be/ibcndevs/solid/kvasir.git'
+    repo: 'https://{{ kvasir_repo_user }}:{{ kvasir_repo_pass }}@gitlab.ilabt.imec.be/ibcndevs/solid/kvasir.git'
     dest: /usr/local/src/kvasir
-  when: kvasir_pat is defined
+  when: kvasir_repo_pass is defined
 
 - name: clone kvasir using ssh key from ssh-agent
   ansible.builtin.git:
@@ -15,7 +16,7 @@
     # IdentitiesOnly=no makes sure ssh-agent is used
     # ControlMaster=auto ControlPersist=60s tries to re-use ssh connections
     ssh_opts: '-o IdentitiesOnly=no -o ControlMaster=auto -o ControlPersist=60s'
-  when: kvasir_pat is not defined
+  when: kvasir_repo_pass is not defined
 
 # QUARKUS_* env vars:
 #     see https://quarkus.io/guides/all-config#quarkus-vertx-http_quarkus-vertx-http-eclipse-vert.x-http
