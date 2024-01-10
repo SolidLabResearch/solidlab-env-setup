@@ -1,0 +1,9 @@
+{
+    "rspec_name": "w1tst",
+    "server_count": 2,
+    "client_count": 1,
+    "component_manager_urn": "urn:publicid:IDN+wall1.ilabt.imec.be+authority+cm",
+    "disk_image_name": "none",
+    "server_hardware_type_name": "pcgen07-1p",
+    "client_hardware_type_name": "pcgen07-1p"
+}
