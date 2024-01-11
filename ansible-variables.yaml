@@ -14,6 +14,12 @@ install_server_solid_perftest_tools: true  # ignored for now and thus always tru
 user_active_test_config_webserver: true
 install_client_scripts: true
 
+perftest_agent_start: false
+testenv_id: 0
+testenv_auth_token: 'none'
+perftest_api_endpoint: 'none'
+testenv_artifact_endpoint: 'none'
+
 css_default_generate_users: true
 css_default_generate_content: true
 css_default_user_count: 6

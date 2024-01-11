@@ -14,30 +14,62 @@
     mode: u=rw,g=r,o=r
   when: install_perftest_agent
 
-#- name: Set PerfTest Agent Systemd HOSTNAME
-#  ansible.builtin.lineinfile:
-#    path: /etc/systemd/system/solidlab-perftest-agent.service
-#    regexp: '^Environment="HOSTNAME='
-#    line: 'Environment="HOSTNAME={{ chosen_fqdn }}"'
-#  when: install_perftest_agent
+- name: Install PerfTest Agent Env file
+  ansible.builtin.copy:
+    src: "files_all/solidlab-perftest-agent.env"
+    dest: "/etc/solidlab-perftest-agent.env"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  when: install_perftest_agent
 
-#- name: Set PerfTest Agent Systemd HOSTNAME
+# Not used anymore:
+#- name: Set PerfTest Agent HOSTNAME
 #  ansible.builtin.lineinfile:
-#    path: /etc/systemd/system/solidlab-perftest-agent.service
-#    regexp: '^Environment="HOSTNAME='
-#    line: 'Environment="HOSTNAME={{ chosen_fqdn }}"'
+#    path: /etc/solidlab-perftest-agent.env
+#    regexp: '^PERFTEST_AGENT_CSS_HOSTNAME='
+#    line: 'PERFTEST_AGENT_CSS_HOSTNAME={{ chosen_fqdn }}'
 #  when: install_perftest_agent
 #
-#- name: Set PerfTest Agent Systemd PORT
+#- name: Set PerfTest Agent PORT
 #  ansible.builtin.lineinfile:
-#    path: /etc/systemd/system/solidlab-perftest-agent.service
-#    regexp: '^Environment="PORT='
-#    line: 'Environment="PORT={{ 443 }}"'
+#    path: /etc/solidlab-perftest-agent.env
+#    regexp: '^PERFTEST_AGENT_CSS_PORT='
+#    line: 'PERFTEST_AGENT_CSS_PORT={{ 443 }}'
 #  when: install_perftest_agent
 
-- name: Set PerfTest Agent Systemd MACHINE_ID
+- name: Set PerfTest Agent TESTENV_ID
   ansible.builtin.lineinfile:
-    path: /etc/systemd/system/solidlab-perftest-agent.service
-    regexp: '^Environment="MACHINE_ID='
-    line: 'Environment="MACHINE_ID={{ inventory_hostname }}"'
+    path: /etc/solidlab-perftest-agent.env
+    regexp: '^PERFTEST_AGENT_TESTENV_ID='
+    line: 'PERFTEST_AGENT_TESTENV_ID={{ testenv_id }}'
   when: install_perftest_agent
+
+- name: Set PerfTest Agent AUTH_TOKEN
+  ansible.builtin.lineinfile:
+    path: /etc/solidlab-perftest-agent.env
+    regexp: '^PERFTEST_AGENT_AUTH_TOKEN='
+    line: 'PERFTEST_AGENT_AUTH_TOKEN={{ testenv_auth_token }}'
+  when: install_perftest_agent
+
+- name: Set PerfTest Agent PERFTEST_API_ENDPOINT
+  ansible.builtin.lineinfile:
+    path: /etc/solidlab-perftest-agent.env
+    regexp: '^PERFTEST_AGENT_PERFTEST_API_ENDPOINT='
+    line: 'PERFTEST_AGENT_PERFTEST_API_ENDPOINT={{ perftest_api_endpoint }}'
+  when: install_perftest_agent
+
+- name: Set PerfTest Agent MACHINE_ID
+  ansible.builtin.lineinfile:
+    path: /etc/solidlab-perftest-agent.env
+    regexp: '^PERFTEST_AGENT_MACHINE_ID='
+    line: 'PERFTEST_AGENT_MACHINE_ID={{ inventory_hostname }}'
+  when: install_perftest_agent
+
+- name: Start solidlab-perftest-agent
+  ansible.builtin.systemd:
+    state: started
+    enabled: true
+    daemon_reload: true
+    name: solidlab-perftest-agent
+  when: (install_perftest_agent and perftest_agent_start)
