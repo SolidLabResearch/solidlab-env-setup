@@ -4,7 +4,7 @@ install_css: true
 install_nginx: true
 #ss_use_https: false
 ss_use_https: true
-start_css: true
+start_css: false
 start_kss: false
 css_default_checkout_arg: main
 install_perfstat: false

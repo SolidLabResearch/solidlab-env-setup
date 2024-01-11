@@ -72,4 +72,4 @@
     enabled: true
     daemon_reload: true
     name: solidlab-perftest-agent
-  when: (install_perftest_agent and perftest_agent_start)
+  when: ( install_perftest_agent and perftest_agent_start )
