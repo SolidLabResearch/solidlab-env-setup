@@ -18,7 +18,7 @@ Downsides:
 
 Instructions: [README-vagrant.md](README-vagrant.md)
 
-## Using an ESpec to test on the virtual wall (with jFed Experiment GUI)
+## Using an RSpec or ESpec to test on the virtual wall (with jFed Experiment GUI)
 
 Upsides:
 - Real bare metal
@@ -28,9 +28,9 @@ Downsides:
 - Slow
 - Multiple steps
 
-**Instructions: [README-jFed-gui.md](README-jFed-gui.md)**
+**Instructions: [README-jFed-gui-rspec.md](README-jFed-gui-rspec.md)** (or [README-jFed-gui-espec.md](README-jFed-gui-espec.md) for the non-recommended ESpec version)
 
-## Using an ESpec to test on the virtual wall (with jFed CLI2)
+## Using an RSpec or ESpec to test on the virtual wall (with jFed CLI2)
 
 Upsides:
 - Real bare metal
@@ -40,7 +40,7 @@ Downsides:
 - Slow
 - Slightly more complex setup
 
-**Instructions: [README-jFed-cli.md](README-jFed-cli.md)**
+**Instructions: [README-jFed-cli-rspec.md](README-jFed-cli-rspec.md)** (or [README-jFed-cli-espec.md](README-jFed-cli-espec.md) for the non-recommended ESpec version)
 
 ## Install on existing servers
 
