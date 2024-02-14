@@ -1,0 +1,50 @@
+To setup one running CSS, with sane defaults and HTTPS, follow [these steps](../README-jFed-gui-rspec.md), and use the files below.
+
+Content of `rspec/cookiecutter.json`:
+```
+{
+    "rspec_name": "myCSS",
+    "server_count": 1,
+    "client_count": 0,
+    "component_manager_urn": "urn:publicid:IDN+wall1.ilabt.imec.be+authority+cm",
+    "disk_image_name": "none",
+    "server_hardware_type_name": "pcgen07-1p",
+    "client_hardware_type_name": "pcgen07-1p"
+}
+```
+
+Content of `ansible-variables.yaml`:
+```
+---
+install_kss: false
+install_css: true
+install_nginx: false
+ss_use_https: true
+start_css: true
+start_kss: false
+css_default_checkout_arg: main
+install_perfstat: false
+install_perftest_agent: false
+install_perftest_upload: false
+install_server_solid_perftest_tools: true  # ignored for now and thus always true!
+user_active_test_config_webserver: true
+install_client_scripts: true
+
+perftest_agent_start: false
+testenv_id: 0
+testenv_auth_token: 'none'
+perftest_api_endpoint: 'none'
+testenv_artifact_endpoint: 'none'
+
+css_default_generate_users: false
+css_default_generate_content: false
+css_default_user_count: 100
+css_default_workers: 0  # 0 should be auto
+css_default_notifications: webhooks  # Options: disabled all websockets webhooks legacy-websockets new-old-websockets  (websockets don't work on multithreaded CSS!)
+css_default_resource_locker: redis  # Options: debug-void memory redis file
+css_default_lock_expiration: false   # true or false (true not yet supported!)
+
+nodejs_version: 18
+```
+
+After ansible runs, you'll find the URL of your server in the file `ss_url_ss0` which ansible will create in the dir you run it from.

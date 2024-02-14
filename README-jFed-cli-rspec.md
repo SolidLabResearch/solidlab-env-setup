@@ -1,5 +1,4 @@
-
-## Using an ESpec to test on the virtual wall (with jFed CLI2)
+## Using an RSpec to test on the virtual wall (with jFed CLI2)
 
 Upsides:
 - Real bare metal
@@ -82,6 +81,8 @@ ansible-playbook --inventory=$(pwd)/generated_rspec/<YOUR_RSPEC_NAME>/ansible-ho
 ### Step 6 (optional): Extract css root URL list (JSON) 
 
 #### Option 1: manual `scp`
+
+**TODO: this section is outdated**
 
 You'll notice that the jFed CLI writes a file `ssh_info.csv` when running the CLI (this is requested in the ESpec).
 

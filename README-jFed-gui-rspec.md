@@ -1,4 +1,4 @@
-## Using an ESpec to test on the virtual wall (with jFed Experiment GUI)
+## Using an RSpec to test on the virtual wall (with jFed Experiment GUI)
 
 Upsides:
 - Real bare metal
