@@ -116,3 +116,6 @@
     - role: install_client_scripts
       when: install_client_scripts
       tags: install_client_scripts
+    - role: docker
+      when: jbr_client
+      tags: setup,jbr_client

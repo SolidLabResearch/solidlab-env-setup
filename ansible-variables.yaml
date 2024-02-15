@@ -31,3 +31,6 @@ css_default_lock_expiration: false   # true or false (true not yet supported!)
 # Changing this can break things:
 #nodejs_version: 16
 nodejs_version: 18
+
+# Install deps needed by jbr on client (docker) (does not isntall jbr)
+jbr_client: false
