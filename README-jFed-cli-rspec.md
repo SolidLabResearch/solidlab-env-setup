@@ -75,6 +75,11 @@ From the command line, run ansible to setup the software on the node:
 
 ```bash
 cd <YOUR_SOLIDLAB_ENV_SETUP_LOCATION>  # Go to the dir with solidlab-env-setup
+
+ansible-galaxy install -r ansible-galaxy-requirements.yaml
+
+export ANSIBLE_SSH_ARGS='-o ForwardAgent=yes -o ControlMaster=auto -o ControlPersist=60s'
+export ANSIBLE_CONNECTION='ssh'
 ansible-playbook --inventory=$(pwd)/generated_rspec/<YOUR_RSPEC_NAME>/ansible-hosts -v playbook.yaml
 ```
 
