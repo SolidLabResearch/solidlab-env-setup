@@ -1,6 +1,6 @@
 {
-    "rspec_name": "jbr2s1c",
-    "server_count": 2,
+    "rspec_name": "jbr8s1c",
+    "server_count": 8,
     "client_count": 1,
     "component_manager_urn": "urn:publicid:IDN+wall1.ilabt.imec.be+authority+cm",
     "disk_image_name": "none",

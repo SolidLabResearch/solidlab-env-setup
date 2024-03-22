@@ -185,6 +185,8 @@ function start_css() {
   #  exit 1
   #fi
 
+  # Before starting CSS make sure the redis DB is clean
+  redis-cli flushall
   systemctl start css
 
   echo "   Waiting until CSS is ready"
