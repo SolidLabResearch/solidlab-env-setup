@@ -457,7 +457,7 @@ function install_css() {
      # see also https://github.com/jqlang/jq/wiki/FAQ#processing-not-quite-valid-json
      rjson "${ttl_file}.orig" > "${ttl_file}"
   fi
-  jq '."@graph"[].config.ttl.AccessToken = 315576000 | ."@graph"[].config.ttl.ClientCredentials = 315576000' \
+  jq '."@graph"[].config.ttl.AccessToken = 315576000 | ."@graph"[].config.ttl.ClientCredentials = 315576000 | ."@graph"[].config.ttl.RefreshToken = 315576000' \
       > "${ttl_file}" \
       < "${ttl_file}.orig"
   jq '."@graph"[].config.ttl' < "${ttl_file}"
