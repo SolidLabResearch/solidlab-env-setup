@@ -108,6 +108,26 @@
         flat: yes
       when: ( start_kss or start_css )
       tags: post
+
+    - name: Stop CSS
+      ansible.builtin.systemd:
+         state: stopped
+         name: css
+      when: refresh_css
+      tags: refresh_css
+
+    - name: Flush CSS Redis
+      shell: /usr/bin/redis-cli flushall
+      when: refresh_css
+      tags: refresh_css
+
+    - name: Start CSS
+      ansible.builtin.systemd:
+         state: started
+         name: css
+      when: refresh_css
+      tags: refresh_css
+
 - hosts: clients
   become: yes
   vars_files:

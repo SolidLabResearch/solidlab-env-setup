@@ -35,3 +35,4 @@ nodejs_version: 18
 # Install deps needed by jbr on client (docker) (does not install jbr)
 jbr_client: true
 
+refresh_css: false  # flush redis and restart CSS

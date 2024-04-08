@@ -5,3 +5,8 @@ generated_espec/
 # These are in the repo, for the default values, but local changes are ignored.
 espec/cookiecutter.json
 ansible-variables.yaml
+ss_url_*
+generated_rspec/
+node_modules/
+ss_list.txt
+tmp-playbook.yaml
