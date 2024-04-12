@@ -3,10 +3,12 @@
 Upsides:
 - Real bare metal
 - DNS, so working https
+- GUI: Easy to use
 
 Downsides:
 - Slow
-- Multiple steps
+- GUI: Multiple steps
+- GUI: Not scriptable
 
 Prerequisites:
 - Install [cookiecutter](https://github.com/cookiecutter/cookiecutter#installation) (`apt install cookiecutter`)

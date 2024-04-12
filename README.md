@@ -23,10 +23,12 @@ Instructions: [README-vagrant.md](README-vagrant.md)
 Upsides:
 - Real bare metal
 - DNS, so working https
+- GUI: Easy to use
 
 Downsides:
 - Slow
-- Multiple steps
+- GUI: Multiple steps
+- GUI: Not scriptable
 
 **Instructions: [README-jFed-gui-rspec.md](README-jFed-gui-rspec.md)** (or [README-jFed-gui-espec.md](README-jFed-gui-espec.md) for the non-recommended ESpec version)
 
@@ -35,10 +37,11 @@ Downsides:
 Upsides:
 - Real bare metal
 - DNS, so working https
+- CLI: Can be used from scripts
 
 Downsides:
 - Slow
-- Slightly more complex setup
+- CLI: Slightly more complex setup
 
 **Instructions: [README-jFed-cli-rspec.md](README-jFed-cli-rspec.md)** (or [README-jFed-cli-espec.md](README-jFed-cli-espec.md) for the non-recommended ESpec version)
 
