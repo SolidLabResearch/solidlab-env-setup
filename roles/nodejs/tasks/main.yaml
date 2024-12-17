@@ -3,9 +3,14 @@
     msg: "The nodejs version requested {{ nodejs_version }} is not the supported by this role."
   when: (nodejs_version != 16) and (nodejs_version != 18)
 
-- name: "Add nodejs apt key"
+- name: "Add nodesource key"
   ansible.builtin.apt_key:
     url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+    state: present
+
+- name: "Add nodesource repo key"
+  ansible.builtin.apt_key:
+    url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
     state: present
 
 - name: "Add nodejs {{ nodejs_version }}.x ppa for apt repo"
