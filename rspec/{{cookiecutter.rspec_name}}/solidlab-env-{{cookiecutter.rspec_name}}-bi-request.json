@@ -1,0 +1,45 @@
+{
+  "resources": [
+    // First the server(s)
+{% for i in range( server_count |int ) %}
+    {
+    "site_id": "be-gent1-bi-baremetal1",
+    "friendly_name": "ss{{ i }}",
+    "disk_image": "{{ disk_image }}",
+    "flavor": "{{ server_flavor }}",
+    "network_interfaces": [{
+      "port_id": "if0",
+      "network_id": "link",
+      "addresses": ["192.168.1.{{ i + 1 }}/24"]
+    }]
+    },
+{% endfor %}
+
+
+    // Then the client(s)
+{% for i in range( client_count |int ) %}
+    {
+    "site_id": "be-gent1-bi-baremetal1",
+    "friendly_name": "client{{ i }}",
+    "disk_image": "{{ disk_image }}",
+    "flavor": "{{ client_flavor }}",
+    "network_interfaces": [{
+      "port_id": "if0",
+      "network_id": "link",
+      "addresses": ["192.168.1.{{ (server_count |int) + i + 1 }}/24"]
+    }]
+    },
+{% endfor %}
+  ],
+  "links": [{
+    "friendly_name": "link",
+    "network_id": "link",
+    "type": "lan",
+    "impairment": [
+      {
+        "latency_ms": 20,
+        "packet_loss": 0.01
+      }
+  ]
+  }]
+}
